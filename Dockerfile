@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Production stage - minimal Alpine with Node.js and curl
-FROM alpine:3.19
+FROM alpine:3.22
 
 # Install only Node.js (current v20), npm (for deps) and curl
 RUN apk add --no-cache nodejs npm curl
