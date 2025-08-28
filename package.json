@@ -18,7 +18,7 @@
     "@tsconfig/svelte": "^5.0.4",
     "@types/ldapjs": "^3.0.6",
     "serve": "^14.2.4",
-    "svelte": "^5.38.1",
+    "svelte": "^5.38.6",
     "svelte-check": "^4.3.1",
     "tailwindcss": "^4.1.12",
     "typescript": "~5.8.3",
