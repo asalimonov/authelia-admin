@@ -17,7 +17,7 @@
     "@tailwindcss/vite": "^4.1.12",
     "@tsconfig/svelte": "^5.0.4",
     "@types/ldapjs": "^3.0.6",
-    "serve": "^14.2.4",
+    "serve": "^14.2.5",
     "svelte": "^5.38.1",
     "svelte-check": "^4.3.1",
     "tailwindcss": "^4.1.12",
