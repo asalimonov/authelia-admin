@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
 import { fail } from '@sveltejs/kit';
+import { sanitizeString, isValidUsername } from '$lib/utils/validation';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -60,6 +61,10 @@ export const actions: Actions = {
                 return fail(400, { error: 'Username is required' });
             }
             
+            if (!isValidUsername(username)) {
+                return fail(400, { error: 'Invalid username format' });
+            }
+            
             const dbConfig = await getDatabaseConfig();
             
             if (!dbConfig) {
@@ -81,7 +86,8 @@ export const actions: Actions = {
                     }
                 }
                 
-                const success = await adapter.createBannedUser(username, expiresDate, source, reason);
+                const sanitizedReason = reason ? sanitizeString(reason, 500) : null;
+                const success = await adapter.createBannedUser(username, expiresDate, source, sanitizedReason);
                 
                 if (!success) {
                     return fail(500, { error: `Failed to ban user "${username}"` });

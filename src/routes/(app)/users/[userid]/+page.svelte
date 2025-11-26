@@ -107,10 +107,11 @@
 			<div class="p-6">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label for="user-id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							User ID
 						</label>
 						<input
+							id="user-id"
 							type="text"
 							value={data.user.uid}
 							readonly
@@ -119,10 +120,11 @@
 					</div>
 					
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label for="display-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Display Name
 						</label>
 						<input
+							id="display-name"
 							type="text"
 							value={data.user.displayName || ''}
 							readonly
@@ -131,10 +133,11 @@
 					</div>
 					
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label for="user-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Email
 						</label>
 						<input
+							id="user-email"
 							type="email"
 							value={data.user.mail || ''}
 							readonly
@@ -143,10 +146,11 @@
 					</div>
 					
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label for="creation-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Creation Date
 						</label>
 						<input
+							id="creation-date"
 							type="text"
 							value={formatDate(data.user.createTimestamp)}
 							readonly
@@ -155,10 +159,11 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label for="first-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							First Name
 						</label>
 						<input
+							id="first-name"
 							type="text"
 							value={data.user.givenName || ''}
 							readonly
@@ -167,10 +172,11 @@
 					</div>
 					
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label for="last-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Last Name
 						</label>
 						<input
+							id="last-name"
 							type="text"
 							value={data.user.sn || ''}
 							readonly
@@ -181,10 +187,11 @@
 
 					
 					<div class="md:col-span-2">
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<label for="user-uuid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							UUID
 						</label>
 						<input
+							id="user-uuid"
 							type="text"
 							value={data.user.entryUUID}
 							readonly

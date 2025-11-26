@@ -150,9 +150,9 @@
 							</div>
 							
 							<div>
-								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+								<div class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 									&nbsp;
-								</label>
+								</div>
 								<label class="flex items-center">
 									<input
 										name="permanent"

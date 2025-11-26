@@ -2,6 +2,7 @@ import type { Handle } from '@sveltejs/kit';
 
 const AUTHELIA_DOMAIN = process.env.AUTHELIA_DOMAIN || 'auth.localhost.test';
 const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : ['admin'];
+const MIN_AUTH_LEVEL = process.env.MIN_AUTH_LEVEL ? parseInt(process.env.MIN_AUTH_LEVEL) : 2;
 
 export const handle: Handle = async ({ event, resolve }) => {
 	if (event.url.pathname === '/auth-admin/health') {
@@ -56,7 +57,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 
 		const authLevel = authData.data.authentication_level;
-		if (typeof authLevel !== 'number' || authLevel < 1) {
+		if (typeof authLevel !== 'number' || authLevel < MIN_AUTH_LEVEL) {
 			console.warn(`User ${username} has insufficient authentication level: ${authLevel}`);
 			return new Response('Insufficient authentication level', { 
 				status: 403,

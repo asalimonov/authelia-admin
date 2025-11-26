@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { parse } from 'yaml';
 import { Client, Attribute, Change } from 'ldapts';
+import { escapeFilter, escapeDn, validateAttributeName } from '$lib/utils/ldap';
 
 export interface LDAPConfig {
     implementation: string;
@@ -160,10 +161,12 @@ export class LdapClient {
         
         try {
             const searchBase = `${config.additional_users_dn},${config.base_dn}`;
+            const escapedUid = escapeFilter(uid);
+            const validatedAttribute = validateAttributeName(config.attributes.username);
             
             const { searchEntries } = await client.search(searchBase, {
                 scope: 'sub',
-                filter: `(&(objectClass=person)(${config.attributes.username}=${uid}))`,
+                filter: `(&(objectClass=person)(${validatedAttribute}=${escapedUid}))`,
                 attributes: [
                     config.attributes.username,
                     config.attributes.display_name,
@@ -212,7 +215,9 @@ export class LdapClient {
         const { client, config } = await this.createConnection();
         
         try {
-            const userDn = `${config.attributes.username}=${uid},${config.additional_users_dn},${config.base_dn}`;
+            const escapedUid = escapeDn(uid);
+            const validatedAttribute = validateAttributeName(config.attributes.username);
+            const userDn = `${validatedAttribute}=${escapedUid},${config.additional_users_dn},${config.base_dn}`;
             
             const changes: Change[] = [];
             
@@ -273,7 +278,9 @@ export class LdapClient {
         const { client, config } = await this.createConnection();
         
         try {
-            const userDn = `${config.attributes.username}=${uid},${config.additional_users_dn},${config.base_dn}`;
+            const escapedUid = escapeDn(uid);
+            const validatedAttribute = validateAttributeName(config.attributes.username);
+            const userDn = `${validatedAttribute}=${escapedUid},${config.additional_users_dn},${config.base_dn}`;
             
             const change = new Change({
                 operation: 'replace',
