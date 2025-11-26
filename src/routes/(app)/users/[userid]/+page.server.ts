@@ -2,6 +2,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { ldapClient } from '$lib/server/ldap';
 import { fail, redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
+import { isValidEmail, sanitizeString, validatePassword } from '$lib/utils/validation';
 
 export const load: PageServerLoad = async ({ params }) => {
     const { userid } = params;
@@ -41,15 +42,15 @@ export const actions: Actions = {
             const sn = formData.get('sn')?.toString() || '';
             
             // Validate email
-            if (mail && !mail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+            if (mail && !isValidEmail(mail)) {
                 return fail(400, { error: 'Invalid email format' });
             }
             
             const success = await ldapClient.updateUser(userid, {
-                displayName,
-                mail,
-                givenName,
-                sn
+                displayName: sanitizeString(displayName, 255),
+                mail: sanitizeString(mail, 255),
+                givenName: sanitizeString(givenName, 255),
+                sn: sanitizeString(sn, 255)
             });
             
             if (!success) {
@@ -85,8 +86,9 @@ export const actions: Actions = {
             }
             
             // Validate password strength
-            if (newPassword.length < 8) {
-                return fail(400, { error: 'Password must be at least 8 characters long' });
+            const passwordValidation = validatePassword(newPassword);
+            if (!passwordValidation.isValid) {
+                return fail(400, { error: passwordValidation.errors.join('. ') });
             }
             
             const success = await ldapClient.changePassword(userid, newPassword);
