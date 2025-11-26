@@ -20,15 +20,23 @@ const DN_CHARS = {
     BACKSLASH: '\u005c'  // \
 } as const;
 
-const FILTER_REGEX = new RegExp(
-    `[${Object.values(FILTER_CHARS).join('')}]`,
-    'gm'
-);
+// Characters that need escaping in LDAP filters
+const FILTER_SPECIAL_CHARS = '\u0000\u0028\u0029\u002a\u005c';
 
-const DN_REGEX = new RegExp(
-    `[${Object.values(DN_CHARS).join('')}]`,
-    'gm'
-);
+// Characters that need escaping in LDAP DNs (excluding space which is handled separately)
+const DN_SPECIAL_CHARS = '\u0022\u0023\u002b\u002c\u003b\u003c\u003d\u003e\u005c';
+
+// Build regex by escaping the backslash properly in the character class
+function buildCharClassRegex(chars: string): RegExp {
+    // Escape backslash for regex character class (must come first)
+    const escaped = chars.replace(/\\/g, '\\\\');
+    return new RegExp(`[${escaped}]`, 'gm');
+}
+
+const FILTER_REGEX = buildCharClassRegex(FILTER_SPECIAL_CHARS);
+const DN_REGEX = buildCharClassRegex(DN_SPECIAL_CHARS);
+const DN_BEGIN_REGEX = /^(\u0020)/g;
+const DN_END_REGEX = /(\u0020)$/g;
 
 interface Replacements {
     filter: Record<string, string>;
@@ -138,12 +146,9 @@ export function dn(strings: TemplateStringsArray, ...values: unknown[]): string 
         if (values.length > i) {
             const value = String(values[i]);
             safe += value
-                .replace(
-                    /(\u0022|\u0023|\u002b|\u002c|\u003b|\u003c|\u003d|\u003e|\u005c)/gm,
-                    (ch) => replacements.dn[ch] || ch
-                )
-                .replace(/^(\u0020)/gm, (ch) => replacements.dnBegin[ch] || ch)
-                .replace(/(\u0020)$/gm, (ch) => replacements.dnEnd[ch] || ch);
+                .replace(DN_REGEX, (ch) => replacements.dn[ch] || ch)
+                .replace(DN_BEGIN_REGEX, (ch) => replacements.dnBegin[ch] || ch)
+                .replace(DN_END_REGEX, (ch) => replacements.dnEnd[ch] || ch);
         }
     });
     return safe;
@@ -163,17 +168,26 @@ export function dn(strings: TemplateStringsArray, ...values: unknown[]): string 
  * ```
  */
 export function escapeDn(value: string): string {
-    return value
-        .replace(
-            /(\u0022|\u0023|\u002b|\u002c|\u003b|\u003c|\u003d|\u003e|\u005c)/gm,
-            (ch) => replacements.dn[ch] || ch
-        )
-        .replace(/^(\u0020)/gm, (ch) => replacements.dnBegin[ch] || ch)
-        .replace(/(\u0020)$/gm, (ch) => replacements.dnEnd[ch] || ch);
+    let result = value.replace(DN_REGEX, (ch) => replacements.dn[ch] || ch);
+
+    // Handle leading space
+    if (result.startsWith(' ')) {
+        result = '\\ ' + result.slice(1);
+    }
+    // Handle leading #
+    if (result.startsWith('#')) {
+        result = '\\#' + result.slice(1);
+    }
+    // Handle trailing space
+    if (result.endsWith(' ')) {
+        result = result.slice(0, -1) + '\\ ';
+    }
+    return result;
 }
 
 export function isValidAttributeName(value: string): boolean {
-    return /^[a-zA-Z][a-zA-Z0-9-]*$/.test(value);
+    return /^[a-zA-Z][a-zA-Z0-9-]*$/.test(value) ||
+        /^[0-9]+(\.[0-9]+)*$/.test(value);
 }
 
 export function validateAttributeName(attributeName: string): string {
