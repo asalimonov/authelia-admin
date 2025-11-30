@@ -2,32 +2,11 @@
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
-	
+	import { formatDate } from '$lib/utils/validation';
+
 	export let data: PageData;
 	export let form: ActionData;
-	
-	function formatDate(dateString: string | undefined): string {
-		if (!dateString) return 'N/A';
-		try {
-			// Handle ISO 8601 format
-			const date = new Date(dateString);
-			if (isNaN(date.getTime())) {
-				return 'Invalid date';
-			}
-			// Format as YYYY-MM-DD HH:mm:ss in 24h format
-			const year = date.getFullYear();
-			const month = String(date.getMonth() + 1).padStart(2, '0');
-			const day = String(date.getDate()).padStart(2, '0');
-			const hours = String(date.getHours()).padStart(2, '0');
-			const minutes = String(date.getMinutes()).padStart(2, '0');
-			const seconds = String(date.getSeconds()).padStart(2, '0');
-			
-			return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-		} catch {
-			return dateString;
-		}
-	}
-	
+
 	function extractGroupName(dn: string): string {
 		// Extract CN from DN string like "cn=admins,ou=groups,dc=localhost,dc=test"
 		const match = dn.match(/cn=([^,]+)/i);

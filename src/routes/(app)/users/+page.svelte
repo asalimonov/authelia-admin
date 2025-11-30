@@ -1,31 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { base } from '$app/paths';
-	
+	import { formatDate } from '$lib/utils/validation';
+
 	export let data: PageData;
-	
-	function formatDate(dateString: string | undefined): string {
-		if (!dateString) return 'N/A';
-		try {
-			// Handle ISO 8601 format: 2025-08-27T09:05:22.403314637+00:00
-			const date = new Date(dateString);
-			if (isNaN(date.getTime())) {
-				return 'Invalid date';
-			}
-			// Format as YYYY-MM-DD HH:mm:ss in 24h format
-			const year = date.getFullYear();
-			const month = String(date.getMonth() + 1).padStart(2, '0');
-			const day = String(date.getDate()).padStart(2, '0');
-			const hours = String(date.getHours()).padStart(2, '0');
-			const minutes = String(date.getMinutes()).padStart(2, '0');
-			const seconds = String(date.getSeconds()).padStart(2, '0');
-			
-			return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-		} catch {
-			return dateString;
-		}
-	}
-	
 </script>
 
 <div class="space-y-6">

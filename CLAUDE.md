@@ -72,6 +72,12 @@ make stop         # Stop and remove container
 # Docker Compose with test environment
 make docker-compose-run  # Run full test stack (Authelia, LLDAP, Traefik)
 
+# Testing (requires docker-compose-run for functional tests)
+make test          # Run all tests (unit + functional)
+make test-small    # Run unit tests only
+make test-medium   # Run functional tests only
+make test-lint     # Run ESLint on TypeScript code
+
 # Cleanup
 make clean         # Clean up images and local files
 make network-remove # Remove Docker network
@@ -85,8 +91,9 @@ make network-remove # Remove Docker network
 src/
 ├── lib/
 │   └── server/
-│       ├── database.ts    # SQLite adapter with optimizations
-│       └── ldap.ts        # LDAP client singleton class
+│       ├── database.ts          # SQLite adapter with optimizations
+│       ├── ldap.ts              # LDAP client singleton class
+│       └── directory-service/   # Directory service abstraction
 ├── routes/
 │   ├── (app)/            # Protected routes requiring auth
 │   │   ├── totp/         # TOTP management pages
@@ -168,6 +175,47 @@ ldapClient.updateUser(...)   // Update user (limited by LLDAP)
 ldapClient.changePassword()  // Change user password
 ldapClient.getGroups()       // Get all groups
 ```
+
+### Directory Service Abstraction
+
+Located in `src/lib/server/directory-service/`, this abstraction provides a unified interface for user/group management across different directory backends.
+
+**Structure:**
+```
+src/lib/server/directory-service/
+├── index.ts              # Public API exports
+├── types.ts              # Common interfaces (User, Group, IDirectoryService)
+├── config.ts             # Configuration types for backends
+├── factory.ts            # Service factory for creating instances
+└── implementations/
+    └── lldap-graphql/    # LLDAP GraphQL implementation
+        ├── index.ts      # LLDAPGraphQLService class
+        ├── client.ts     # GraphQL client with token management
+        ├── queries.ts    # GraphQL queries
+        ├── mutations.ts  # GraphQL mutations
+        └── mappers.ts    # Type converters (LLDAP <-> common types)
+```
+
+**Usage:**
+```typescript
+import { createDirectoryService, type DirectoryServiceConfig } from '$lib/server/directory-service';
+
+const config: DirectoryServiceConfig = {
+  type: 'lldap-graphql',
+  endpoint: 'http://lldap:17170/api/graphql',
+  user: 'admin',
+  password: 'secret'
+};
+
+const service = createDirectoryService(config);
+const users = await service.listUsers();
+const user = await service.getUserDetails('admin');
+```
+
+**Key design decisions:**
+- Group IDs are strings (UUIDs) at the interface level
+- LLDAP implementation maps internal numeric IDs to UUIDs
+- Thread-safe bearer token management with automatic refresh
 
 ### Security Measures
 - CSRF protection via `trustedOrigins`

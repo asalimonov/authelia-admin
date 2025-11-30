@@ -48,7 +48,7 @@ log:
   keep_stdout: true
 
 totp:
-  disable: 'false'
+  disable: 'true'
   issuer: 'localhost'
   algorithm: 'sha1'
   digits: 6
@@ -99,7 +99,7 @@ identity_validation:
     jwt_algorithm: 'HS256'
 
 access_control:
-  default_policy: 'two_factor' ## https://www.authelia.com/configuration/security/access-control/#policies
+  default_policy: 'one_factor' ## https://www.authelia.com/configuration/security/access-control/#policies
 
 session:
   secret: 'insecure_session_secret'

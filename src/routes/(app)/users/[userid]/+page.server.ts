@@ -109,7 +109,7 @@ export const actions: Actions = {
         }
     },
     
-    cancel: async ({ params }) => {
+    cancel: async () => {
         throw redirect(303, `${base}/users`);
     }
 };

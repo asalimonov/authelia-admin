@@ -45,6 +45,7 @@ export class LdapClient {
     private static instance: LdapClient | null = null;
     private config: LDAPConfig | null = null;
 
+    // Private constructor for singleton pattern
     private constructor() {}
 
     public static getInstance(): LdapClient {
@@ -135,20 +136,23 @@ export class LdapClient {
                 ]
             });
             
-            const users: LDAPUser[] = searchEntries.map((entry: any) => ({
-                uid: entry[config.attributes.username] || '',
-                displayName: entry[config.attributes.display_name] || '',
-                mail: entry[config.attributes.mail] || '',
-                givenName: entry.givenName || undefined,
-                sn: entry.sn || undefined,
-                entryUUID: entry.entryUUID || '',
-                createTimestamp: entry.createTimestamp || undefined,
-                memberOf: Array.isArray(entry[config.attributes.member_of])
-                    ? entry[config.attributes.member_of]
-                    : entry[config.attributes.member_of]
-                        ? [entry[config.attributes.member_of]]
-                        : []
-            }));
+            const users: LDAPUser[] = searchEntries.map((entry) => {
+                const memberOfValue = entry[config.attributes.member_of];
+                return {
+                    uid: String(entry[config.attributes.username] || ''),
+                    displayName: String(entry[config.attributes.display_name] || ''),
+                    mail: String(entry[config.attributes.mail] || ''),
+                    givenName: entry.givenName ? String(entry.givenName) : undefined,
+                    sn: entry.sn ? String(entry.sn) : undefined,
+                    entryUUID: String(entry.entryUUID || ''),
+                    createTimestamp: entry.createTimestamp ? String(entry.createTimestamp) : undefined,
+                    memberOf: Array.isArray(memberOfValue)
+                        ? memberOfValue as string[]
+                        : memberOfValue
+                            ? [String(memberOfValue)]
+                            : []
+                };
+            });
             
             return users;
         } finally {
@@ -319,17 +323,19 @@ export class LdapClient {
                 ]
             });
             
-            const groups: LDAPGroup[] = searchEntries.map((entry: any) => ({
-                cn: entry[config.attributes.group_name] || '',
-                member: Array.isArray(entry.member)
-                    ? entry.member
-                    : entry.member
-                        ? [entry.member]
-                        : [],
-                description: entry.description || undefined,
-                entryUUID: entry.entryUUID || '',
-                createTimestamp: entry.createTimestamp || undefined
-            }));
+            const groups: LDAPGroup[] = searchEntries.map((entry) => {
+                return {
+                    cn: String(entry[config.attributes.group_name] || ''),
+                    member: Array.isArray(entry.member)
+                        ? entry.member as string[]
+                        : entry.member
+                            ? [String(entry.member)]
+                            : [],
+                    description: entry.description ? String(entry.description) : undefined,
+                    entryUUID: String(entry.entryUUID || ''),
+                    createTimestamp: entry.createTimestamp ? String(entry.createTimestamp) : undefined
+                };
+            });
             
             return groups;
         } finally {

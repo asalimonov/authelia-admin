@@ -52,7 +52,7 @@ services:
   #     retries: 3
 
   lldap:
-    image: 'docker.io/lldap/lldap:v0.6.2-debian'
+    image: 'ghcr.io/asalimonov/lldap:latest-debian'
     networks:
       authelia:
         aliases:
@@ -91,6 +91,8 @@ services:
           - auth.localhost.test
     container_name: "traefik"
     restart: "unless-stopped"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       - "--configfile=/etc/traefik/traefik.yml"
     ports:

@@ -66,7 +66,7 @@ export interface DatabaseAdapter {
 
 class SQLiteAdapter implements DatabaseAdapter {
     private db: sqlite3.Database;
-    private dbAll: (sql: string, params?: any[]) => Promise<any[]>;
+    private dbAll: (sql: string, params?: unknown[]) => Promise<unknown[]>;
     private dbClose: () => Promise<void>;
 
     private constructor(db: sqlite3.Database) {
@@ -92,7 +92,7 @@ class SQLiteAdapter implements DatabaseAdapter {
     }
     
     // Custom dbRun that returns the statement info with changes
-    private dbRun(sql: string, params?: any[]): Promise<{ changes: number; lastID: number }> {
+    private dbRun(sql: string, params?: unknown[]): Promise<{ changes: number; lastID: number }> {
         return new Promise((resolve, reject) => {
             this.db.run(sql, params, function(err) {
                 if (err) {
@@ -145,7 +145,7 @@ class SQLiteAdapter implements DatabaseAdapter {
         }
     }
 
-    async getTOTPHistory(limit: number = 100): Promise<TOTPHistory[]> {
+    async getTOTPHistory(limit = 100): Promise<TOTPHistory[]> {
         const query = `
             SELECT 
                 id,
@@ -288,55 +288,6 @@ class SQLiteAdapter implements DatabaseAdapter {
     }
 }
 
-class PostgreSQLAdapter implements DatabaseAdapter {
-    constructor(connectionString: string) {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async getTOTPConfigurations(): Promise<TOTPConfiguration[]> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async deleteTOTPConfiguration(id: number): Promise<boolean> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async getTOTPHistory(limit?: number): Promise<TOTPHistory[]> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async getBannedUsers(): Promise<BannedUser[]> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async createBannedUser(username: string, expires: Date | null, source: string, reason: string | null): Promise<boolean> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async deleteBannedUser(id: number): Promise<boolean> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async getBannedIPs(): Promise<BannedIP[]> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async createBannedIP(ip: string, expires: Date | null, source: string, reason: string | null): Promise<boolean> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async deleteBannedIP(id: number): Promise<boolean> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async healthCheck(): Promise<void> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-
-    async close(): Promise<void> {
-        throw new Error('PostgreSQL support not yet implemented');
-    }
-}
 
 export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
     try {
