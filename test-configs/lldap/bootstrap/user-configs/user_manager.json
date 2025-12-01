@@ -8,7 +8,7 @@
   "gravatar_avatar": "false",
   "weserv_avatar": "false",
   "groups": [
-    "lldap_user_manager",
+    "authelia_user_manager",
     "cloud"
   ]
 }

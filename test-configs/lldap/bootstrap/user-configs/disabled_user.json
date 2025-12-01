@@ -1,0 +1,14 @@
+{
+  "id": "disableduser",
+  "email": "disabled@localhost.test",
+  "password": "disabled1234",
+  "displayName": "Disabled User",
+  "firstName": "Disabled",
+  "lastName": "User",
+  "gravatar_avatar": "false",
+  "weserv_avatar": "false",
+  "groups": [
+    "disabled",
+    "users"
+  ]
+}
