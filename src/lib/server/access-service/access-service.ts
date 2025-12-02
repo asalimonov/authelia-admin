@@ -136,7 +136,7 @@ export class AccessService implements IAccessService {
     ): Promise<AccessCheckResult> {
         switch (permission) {
             case Permission.USER_CHANGE_PASSWORD:
-                return this.checkPasswordChangeRestriction(entityId);
+                return this.checkPasswordChangeRestriction(context.userId, entityId);
 
             case Permission.USER_ADD_TO_GROUP:
             case Permission.USER_REMOVE_FROM_GROUP:
@@ -144,7 +144,7 @@ export class AccessService implements IAccessService {
 
             case Permission.USER_DELETE:
             case Permission.USER_EDIT:
-                return this.checkUserModificationRestriction(entityId);
+                return this.checkUserModificationRestriction(context.userId, entityId);
 
             default:
                 return { allowed: true };
@@ -156,12 +156,18 @@ export class AccessService implements IAccessService {
      * - password_manager cannot change password for users in protected groups
      * - user_manager cannot change password for users in protected groups
      */
-    private async checkPasswordChangeRestriction(targetUserId?: string): Promise<AccessCheckResult> {
+    private async checkPasswordChangeRestriction(userId: string, targetUserId?: string): Promise<AccessCheckResult> {
         if (!targetUserId) {
             return {
                 allowed: false,
                 reason: 'Target user ID required for password change',
             };
+        }
+
+        if (userId == targetUserId) {
+            return {
+                allowed: true
+            }
         }
 
         const isTargetProtected = await this.isUserProtected(targetUserId);
@@ -218,12 +224,18 @@ export class AccessService implements IAccessService {
      * User modification restrictions:
      * - user_manager cannot delete/edit users in protected groups
      */
-    private async checkUserModificationRestriction(targetUserId?: string): Promise<AccessCheckResult> {
+    private async checkUserModificationRestriction(userId: string, targetUserId?: string): Promise<AccessCheckResult> {
         if (!targetUserId) {
             return {
                 allowed: false,
                 reason: 'Target user ID required for user modification',
             };
+        }
+
+        if (userId == targetUserId) {
+            return {
+                allowed: true
+            }
         }
 
         const isTargetProtected = await this.isUserProtected(targetUserId);

@@ -33,7 +33,9 @@ pre-build: ## Build CI image with pre-installed dependencies (for linting/testin
 .PHONY: run
 run: network ## Run Docker container
 	docker run --rm --network $(DOCKER_NETWORK_NAME) \
-		-v ./test-configs/authelia:/config -v ./.test-data/authelia:/data \
+		-v ./test-configs/config.yml:/opt/authelia-admin/config.yml:ro \
+		-v ./test-configs/authelia:/config \
+		-v ./.test-data/authelia:/data \
 		-e NODE_TLS_REJECT_UNAUTHORIZED=0 \
 		--name $(DOCKER_CONTAINER_NAME) \
 		-p $(DOCKER_PORT):9093 \
@@ -45,8 +47,8 @@ run-dev: network build-dev ## Run development Docker container
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
 	docker run --rm -it \
-		-e MIN_AUTH_LEVEL=1 \
 		-v $(PWD):/app \
+		-v $(PWD)/test-configs/config.yml:/opt/authelia-admin/config.yml:ro \
 		--network $(DOCKER_NETWORK_NAME) \
 		-v ./test-configs/authelia:/config \
 		-v ./.test-data/authelia:/data \

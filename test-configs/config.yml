@@ -1,0 +1,18 @@
+# Authelia Admin Configuration
+# Mount this file to /opt/authelia-admin/config.yml
+
+# Authelia integration settings
+authelia:
+  # Domain where Authelia is accessible
+  domain: auth.localhost.test
+  # Name of the session cookie used by Authelia
+  cookie_name: authelia_session
+  # Minimum authentication level required (1=password, 2=2FA)
+  min_auth_level: 1
+
+# Directory service configuration (LLDAP)
+directory_service:
+  type: lldap-graphql
+  endpoint: http://lldap:17170/api/graphql
+  user: admin
+  password: admin1234

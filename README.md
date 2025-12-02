@@ -28,7 +28,7 @@ A web-based administration interface for managing Authelia authentication server
 
 - `MIN_AUTH_LEVEL` env var - minimal level of authentication, 2 for 2FA and 1 for password only, default 2
 - `AUTHELIA_CONFIG_PATH` - Path to Authelia configuration file (default: `/config/configuration.yml`)
-- `ALLOWED_USERS` - List of allowed users separated by comma (`,`), (default: `admin`)
+- `ALLOWED_USERS` - List of allowed users separated by comma (`,`), optional
 - `NODE_TLS_REJECT_UNAUTHORIZED=0` in case of self-signed certificate for Authelia, or mount volume `/etc/ssl/certs/:/etc/ssl/certs/:ro` in Docker
 
 ### Docker

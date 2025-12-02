@@ -15,17 +15,30 @@
 	{/if}
 	
 	<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-			<h2 class="text-xl font-bold text-gray-900 dark:text-white">
-				LDAP Users
-			</h2>
-			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-				{#if data.ldapServer}
-					Server: {data.ldapServer}
-				{:else}
-					User directory from LDAP server
-				{/if}
-			</p>
+		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+			<div>
+				<h2 class="text-xl font-bold text-gray-900 dark:text-white">
+					LDAP Users
+				</h2>
+				<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+					{#if data.ldapServer}
+						Server: {data.ldapServer}
+					{:else}
+						User directory from LDAP server
+					{/if}
+				</p>
+			</div>
+			{#if data.canCreateUsers}
+				<a
+					href="{base}/users/new"
+					class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2 whitespace-nowrap"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+						<path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+					</svg>
+					Add User
+				</a>
+			{/if}
 		</div>
 		
 		<div class="p-6">

@@ -1,19 +1,34 @@
 import type { Handle } from '@sveltejs/kit';
+import { loadConfig, type AppConfig } from '$lib/server/config';
 
-const AUTHELIA_DOMAIN = process.env.AUTHELIA_DOMAIN || 'auth.localhost.test';
-const ALLOWED_USERS = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : ['admin'];
-const MIN_AUTH_LEVEL = process.env.MIN_AUTH_LEVEL ? parseInt(process.env.MIN_AUTH_LEVEL) : 2;
+// Config will be loaded on first request
+let configLoaded = false;
+let config: AppConfig | null = null;
+
+async function ensureConfigLoaded(): Promise<AppConfig> {
+	if (!configLoaded) {
+		config = await loadConfig();
+		configLoaded = true;
+	}
+	return config!;
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Health endpoint doesn't require authentication
 	if (event.url.pathname === '/auth-admin/health') {
 		return resolve(event);
 	}
 
-	const authSessionCookie = event.cookies.get('authelia_session');
-		event.locals.user = undefined;	
+	// Load config on first request
+	const appConfig = await ensureConfigLoaded();
+	const { authelia } = appConfig;
+
+	// Check for session cookie using configured cookie name
+	const authSessionCookie = event.cookies.get(authelia.cookie_name);
+	event.locals.user = undefined;
+
 	if (!authSessionCookie) {
-		// No cookie - return 403 for all non-health endpoints
-		return new Response('Authentication required', { 
+		return new Response('Authentication required', {
 			status: 403,
 			headers: { 'Content-Type': 'text/plain' }
 		});
@@ -21,45 +36,46 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	try {
 		const cookieHeader = event.request.headers.get('cookie') || '';
-		const authResponse = await fetch(`https://${AUTHELIA_DOMAIN}/api/state`, {
+		const authResponse = await fetch(`https://${authelia.domain}/api/state`, {
 			headers: {
-				'Cookie': cookieHeader,
-				'Accept': 'application/json'
+				Cookie: cookieHeader,
+				Accept: 'application/json'
 			}
 		});
 
 		if (authResponse.status !== 200) {
-			return new Response('Authentication required', { 
+			return new Response('Authentication required', {
 				status: 403,
 				headers: { 'Content-Type': 'text/plain' }
 			});
 		}
 
 		const authData = await authResponse.json();
-		
+
 		// Check if response has expected structure
 		if (authData.status !== 'OK' || !authData.data || !authData.data.username) {
 			console.error('Invalid auth data structure:', authData);
-			return new Response('Authentication failed', { 
+			return new Response('Authentication failed', {
 				status: 403,
 				headers: { 'Content-Type': 'text/plain' }
 			});
 		}
 
-		// Check if user is in allowed list
 		const username = authData.data.username;
-		if (!ALLOWED_USERS.includes(username)) {
+		if (authelia.allowed_users != null && authelia.allowed_users.length > 0
+			&& !authelia.allowed_users.includes(username)) {
 			console.warn(`User ${username} not in allowed list`);
-			return new Response('Access denied', { 
+			return new Response('Access denied', {
 				status: 403,
 				headers: { 'Content-Type': 'text/plain' }
 			});
 		}
 
+		// Check authentication level
 		const authLevel = authData.data.authentication_level;
-		if (typeof authLevel !== 'number' || authLevel < MIN_AUTH_LEVEL) {
+		if (typeof authLevel !== 'number' || authLevel < authelia.min_auth_level) {
 			console.warn(`User ${username} has insufficient authentication level: ${authLevel}`);
-			return new Response('Insufficient authentication level', { 
+			return new Response('Insufficient authentication level', {
 				status: 403,
 				headers: { 'Content-Type': 'text/plain' }
 			});
@@ -69,10 +85,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 			username,
 			authenticationLevel: authData.data.authentication_level
 		};
-
 	} catch (err) {
 		console.error('Authentication check failed:', err);
-		return new Response('Authentication failed', { 
+		return new Response('Authentication failed', {
 			status: 403,
 			headers: { 'Content-Type': 'text/plain' }
 		});

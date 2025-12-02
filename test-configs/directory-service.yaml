@@ -1,7 +1,0 @@
-# Directory Service Configuration for Testing
-# Uses LLDAP GraphQL interface via Traefik reverse proxy
-
-type: lldap-graphql
-endpoint: https://ldap.localhost.test:17170/api/graphql
-user: admin
-password: admin1234

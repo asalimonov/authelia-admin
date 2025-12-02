@@ -135,7 +135,7 @@ HOST=0.0.0.0                                    # Server host
 # Authelia Integration
 AUTHELIA_CONFIG_PATH=/config/configuration.yml  # Path to Authelia config
 AUTHELIA_DOMAIN=auth.localhost.test            # Authelia domain for auth
-ALLOWED_USERS=admin,user2                      # Comma-separated allowed users
+ALLOWED_USERS=admin,user2                      # Comma-separated allowed users, optional
 
 # Security
 TRUSTED_ORIGINS=https://auth.localhost.test    # CSRF trusted origins
@@ -153,7 +153,7 @@ NODE_TLS_REJECT_UNAUTHORIZED=0                 # Dev only - remove in production
 ### Authentication Flow
 1. Check for `authelia_session` cookie
 2. Validate session with Authelia API (`/api/state`)
-3. Verify user is in `ALLOWED_USERS` list
+3. Verify user is in `ALLOWED_USERS` list (allowed_users list is optional)
 4. Require authentication level 2 (2FA) for admin access
 5. Store user info in `event.locals.user`
 

@@ -41,10 +41,12 @@ services:
   #   ports:
   #     - "9093:9093"
   #   volumes:
+  #     - './test-configs/config.yml:/opt/authelia-admin/config.yml:ro'
   #     - './test-configs/authelia:/config'
   #     - './.test-data/authelia:/data'
   #   environment:
   #     - TZ=UTC
+  #     - NODE_TLS_REJECT_UNAUTHORIZED=0
   #   healthcheck:
   #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/"]
   #     interval: 30s
