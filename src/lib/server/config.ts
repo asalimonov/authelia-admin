@@ -35,7 +35,7 @@ const DEFAULT_AUTHELIA_CONFIG: AutheliaConfig = {
 	domain: 'auth.localhost.test',
 	cookie_name: 'authelia_session',
 	min_auth_level: 2,
-	allowed_users: ['']
+	allowed_users: []
 };
 
 const DEFAULT_DIRECTORY_SERVICE_CONFIG: DirectoryServiceConfig = {

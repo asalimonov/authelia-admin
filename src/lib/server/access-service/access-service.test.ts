@@ -140,14 +140,14 @@ describe('AccessService', () => {
             expect(role).toBe(Role.PASSWORD_MANAGER);
         });
 
-        it('should return VIEWER for users without special groups', async () => {
+        it('should return null for users without special groups', async () => {
             const role = await accessService.getUserRole('viewer');
-            expect(role).toBe(Role.VIEWER);
+            expect(role).toBeNull();
         });
 
-        it('should return VIEWER for non-existent users', async () => {
+        it('should return null for non-existent users', async () => {
             const role = await accessService.getUserRole('nonexistent');
-            expect(role).toBe(Role.VIEWER);
+            expect(role).toBeNull();
         });
     });
 
@@ -162,9 +162,9 @@ describe('AccessService', () => {
             expect(permissions).toEqual(RolePermissions.get(Role.USER_MANAGER));
         });
 
-        it('should return viewer permissions for viewers', async () => {
+        it('should return empty permissions for users without a role', async () => {
             const permissions = await accessService.getUserPermissions('viewer');
-            expect(permissions).toEqual(RolePermissions.get(Role.VIEWER));
+            expect(permissions).toEqual([]);
         });
     });
 
@@ -182,7 +182,7 @@ describe('AccessService', () => {
             const context = await accessService.getUserContext('nonexistent');
 
             expect(context.userId).toBe('nonexistent');
-            expect(context.role).toBe(Role.VIEWER);
+            expect(context.role).toBeNull();
             expect(context.groups).toEqual([]);
             expect(context.permissions).toEqual([]);
         });
@@ -219,43 +219,43 @@ describe('AccessService', () => {
     });
 
     describe('check - basic permissions', () => {
-        describe('VIEWER role', () => {
-            it('should allow USER_LIST', async () => {
+        describe('Users without role', () => {
+            it('should deny USER_LIST', async () => {
                 const result = await accessService.check(
                     'viewer',
                     Permission.USER_LIST,
                     EntityType.NONE
                 );
-                expect(result).toBe(true);
+                expect(result).toBe(false);
             });
 
-            it('should allow USER_VIEW', async () => {
+            it('should deny USER_VIEW', async () => {
                 const result = await accessService.check(
                     'viewer',
                     Permission.USER_VIEW,
                     EntityType.USER,
                     'regular_user'
                 );
-                expect(result).toBe(true);
+                expect(result).toBe(false);
             });
 
-            it('should allow GROUP_LIST', async () => {
+            it('should deny GROUP_LIST', async () => {
                 const result = await accessService.check(
                     'viewer',
                     Permission.GROUP_LIST,
                     EntityType.NONE
                 );
-                expect(result).toBe(true);
+                expect(result).toBe(false);
             });
 
-            it('should allow GROUP_VIEW', async () => {
+            it('should deny GROUP_VIEW', async () => {
                 const result = await accessService.check(
                     'viewer',
                     Permission.GROUP_VIEW,
                     EntityType.GROUP,
                     'group-users'
                 );
-                expect(result).toBe(true);
+                expect(result).toBe(false);
             });
 
             it('should deny USER_CREATE', async () => {
@@ -489,9 +489,21 @@ describe('AccessService', () => {
     });
 
     describe('checkWithDetails', () => {
-        it('should return detailed result for denied permission', async () => {
+        it('should return detailed result for user without a role', async () => {
             const result = await accessService.checkWithDetails(
                 'viewer',
+                Permission.USER_CREATE,
+                EntityType.NONE
+            );
+
+            expect(result.allowed).toBe(false);
+            expect(result.reason).toContain('does not have a valid role');
+            expect(result.requiredRole).toBe(Role.PASSWORD_MANAGER);
+        });
+
+        it('should return detailed result for denied permission when user has role', async () => {
+            const result = await accessService.checkWithDetails(
+                'password_manager',
                 Permission.USER_CREATE,
                 EntityType.NONE
             );
@@ -648,9 +660,9 @@ describe('AccessService', () => {
             expect(result).toBe(false);
         });
 
-        it('should allow access for non-disabled users', async () => {
+        it('should allow access for non-disabled users with role', async () => {
             const result = await accessService.checkWithDetails(
-                'viewer',
+                'password_manager',
                 Permission.USER_LIST,
                 EntityType.NONE
             );

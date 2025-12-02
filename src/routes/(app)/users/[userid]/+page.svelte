@@ -143,63 +143,63 @@
 			<div class="p-6">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							User ID
-						</label>
+						</span>
 						<p class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
 							{data.user.id}
 						</p>
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Email
-						</label>
+						</span>
 						<p class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
 							{data.user.email || '-'}
 						</p>
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Display Name
-						</label>
+						</span>
 						<p class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
 							{data.user.displayName || '-'}
 						</p>
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Creation Date
-						</label>
+						</span>
 						<p class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
 							{formatDate(data.user.creationDate?.toISOString())}
 						</p>
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							First Name
-						</label>
+						</span>
 						<p class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
 							{getAttributeValue('first_name') || '-'}
 						</p>
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							Last Name
-						</label>
+						</span>
 						<p class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white">
 							{getAttributeValue('last_name') || '-'}
 						</p>
 					</div>
 
 					<div class="md:col-span-2">
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							UUID
-						</label>
+						</span>
 						<p class="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-white font-mono text-sm">
 							{data.user.uuid}
 						</p>

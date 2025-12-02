@@ -4,13 +4,13 @@ import type { RoleMapperConfig } from '../types';
 
 /**
  * Default LLDAP role mapping configuration
+ * Only users in one of these groups will have access to the application
  */
 export const LLDAP_DEFAULT_CONFIG: RoleMapperConfig = {
     roleGroups: {
         [Role.ADMIN]: ['lldap_admin'],
         [Role.USER_MANAGER]: ['authelia_user_manager'],
         [Role.PASSWORD_MANAGER]: ['lldap_password_manager'],
-        [Role.VIEWER]: [], // All authenticated users are viewers
     },
     protectedGroups: ['lldap_admin', 'lldap_password_manager', 'authelia_user_manager'],
 };

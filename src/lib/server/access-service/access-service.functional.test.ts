@@ -59,17 +59,18 @@ describe('AccessService Functional Tests', () => {
             expect(role).toBe(Role.PASSWORD_MANAGER);
         });
 
-        it('should resolve test user to VIEWER role', async () => {
+        it('should resolve test user to null (no role)', async () => {
             const role = await accessService.getUserRole('test');
-            expect(role).toBe(Role.VIEWER);
+            expect(role).toBeNull();
         });
 
-        it('should resolve non-existent user to VIEWER role (but with no permissions)', async () => {
+        it('should resolve non-existent user to null (no role, no permissions)', async () => {
             const role = await accessService.getUserRole('nonexistent_user_xyz');
-            expect(role).toBe(Role.VIEWER);
+            expect(role).toBeNull();
 
-            // Non-existent users get VIEWER role but empty permissions
+            // Non-existent users have no role and empty permissions
             const context = await accessService.getUserContext('nonexistent_user_xyz');
+            expect(context.role).toBeNull();
             expect(context.permissions).toEqual([]);
         });
     });
@@ -127,31 +128,31 @@ describe('AccessService Functional Tests', () => {
         });
     });
 
-    describe('Permission Checks - VIEWER', () => {
-        const userId = 'test'; // test user is a VIEWER
+    describe('Permission Checks - Users without role', () => {
+        const userId = 'test'; // test user has no role (not in any role group)
 
-        it('should allow USER_LIST', async () => {
+        it('should deny USER_LIST', async () => {
             const result = await accessService.check(userId, Permission.USER_LIST, EntityType.NONE);
-            expect(result).toBe(true);
+            expect(result).toBe(false);
         });
 
-        it('should allow USER_VIEW', async () => {
+        it('should deny USER_VIEW', async () => {
             const result = await accessService.check(
                 userId,
                 Permission.USER_VIEW,
                 EntityType.USER,
                 'admin'
             );
-            expect(result).toBe(true);
+            expect(result).toBe(false);
         });
 
-        it('should allow GROUP_LIST', async () => {
+        it('should deny GROUP_LIST', async () => {
             const result = await accessService.check(
                 userId,
                 Permission.GROUP_LIST,
                 EntityType.NONE
             );
-            expect(result).toBe(true);
+            expect(result).toBe(false);
         });
 
         it('should deny USER_CREATE', async () => {
@@ -385,9 +386,21 @@ describe('AccessService Functional Tests', () => {
     });
 
     describe('Check With Details', () => {
-        it('should return detailed denial reason for insufficient role', async () => {
+        it('should return detailed denial reason for user without a role', async () => {
             const result = await accessService.checkWithDetails(
                 'test',
+                Permission.USER_CREATE,
+                EntityType.NONE
+            );
+
+            expect(result.allowed).toBe(false);
+            expect(result.reason).toContain('does not have a valid role');
+            expect(result.requiredRole).toBe(Role.PASSWORD_MANAGER);
+        });
+
+        it('should return detailed denial reason for insufficient permissions (user has role)', async () => {
+            const result = await accessService.checkWithDetails(
+                'passwordmanager',
                 Permission.USER_CREATE,
                 EntityType.NONE
             );

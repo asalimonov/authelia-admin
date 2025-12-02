@@ -137,7 +137,7 @@
 					action="{base}/users/new?/create"
 					use:enhance={() => {
 						if (!validateForm()) {
-							return async () => {};
+							return ({ cancel }) => cancel();
 						}
 						isSubmitting = true;
 						return async ({ update }) => {

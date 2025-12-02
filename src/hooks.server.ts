@@ -1,5 +1,7 @@
-import type { Handle } from '@sveltejs/kit';
+import { error, type Handle } from '@sveltejs/kit';
 import { loadConfig, type AppConfig } from '$lib/server/config';
+import { getDirectoryServiceAsync } from '$lib/server/directory-service';
+import { getAccessService, type DirectoryServiceType } from '$lib/server/access-service';
 
 // Config will be loaded on first request
 let configLoaded = false;
@@ -28,10 +30,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = undefined;
 
 	if (!authSessionCookie) {
-		return new Response('Authentication required', {
-			status: 403,
-			headers: { 'Content-Type': 'text/plain' }
-		});
+		error(403, 'Authentication required');
 	}
 
 	try {
@@ -44,10 +43,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		});
 
 		if (authResponse.status !== 200) {
-			return new Response('Authentication required', {
-				status: 403,
-				headers: { 'Content-Type': 'text/plain' }
-			});
+			error(403, 'Authentication required');
 		}
 
 		const authData = await authResponse.json();
@@ -55,44 +51,59 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Check if response has expected structure
 		if (authData.status !== 'OK' || !authData.data || !authData.data.username) {
 			console.error('Invalid auth data structure:', authData);
-			return new Response('Authentication failed', {
-				status: 403,
-				headers: { 'Content-Type': 'text/plain' }
-			});
+			error(403, 'Authentication failed');
 		}
 
 		const username = authData.data.username;
 		if (authelia.allowed_users != null && authelia.allowed_users.length > 0
 			&& !authelia.allowed_users.includes(username)) {
 			console.warn(`User ${username} not in allowed list`);
-			return new Response('Access denied', {
-				status: 403,
-				headers: { 'Content-Type': 'text/plain' }
-			});
+			error(403, 'Access denied');
 		}
 
 		// Check authentication level
 		const authLevel = authData.data.authentication_level;
 		if (typeof authLevel !== 'number' || authLevel < authelia.min_auth_level) {
 			console.warn(`User ${username} has insufficient authentication level: ${authLevel}`);
-			return new Response('Insufficient authentication level', {
-				status: 403,
-				headers: { 'Content-Type': 'text/plain' }
-			});
+			error(403, 'Insufficient authentication level');
 		}
 
 		event.locals.user = {
 			username,
 			authenticationLevel: authData.data.authentication_level
 		};
+
+		// Check if user has a valid role (admin, user_manager, or password_manager)
+		// Users without a role cannot access the application
+		try {
+			const directoryService = await getDirectoryServiceAsync();
+			const accessService = getAccessService(
+				directoryService,
+				appConfig.directory_service.type as DirectoryServiceType
+			);
+
+			const role = await accessService.getUserRole(username);
+			if (role === null) {
+				console.warn(`User ${username} does not have a valid role to access this application`);
+				error(403, 'Access denied: You do not have permission to access this application');
+			}
+		} catch (roleErr) {
+			// Re-throw SvelteKit errors
+			if (roleErr && typeof roleErr === 'object' && 'status' in roleErr) {
+				throw roleErr;
+			}
+			console.error('Role check failed:', roleErr);
+			error(500, 'Authorization check failed');
+		}
 	} catch (err) {
+		// Re-throw SvelteKit errors
+		if (err && typeof err === 'object' && 'status' in err) {
+			throw err;
+		}
 		console.error('Authentication check failed:', err);
-		return new Response('Authentication failed', {
-			status: 403,
-			headers: { 'Content-Type': 'text/plain' }
-		});
+		error(403, 'Authentication failed');
 	}
 
-	// Continue with the request - user is authenticated
+	// Continue with the request - user is authenticated and has a valid role
 	return resolve(event);
 };

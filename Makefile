@@ -28,6 +28,10 @@ build-dev: ## Build development Docker image
 
 .PHONY: pre-build
 pre-build: ## Build CI image with pre-installed dependencies (for linting/testing)
+	@if [ ! -f package-lock.json ]; then \
+		echo "package-lock.json not found, generating..."; \
+		docker run --rm -v "$(PWD)":/app -w /app -u "$$(id -u):$$(id -g)" node:25-alpine npm install --package-lock-only; \
+	fi
 	docker build --target builder -t $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) .
 
 .PHONY: run

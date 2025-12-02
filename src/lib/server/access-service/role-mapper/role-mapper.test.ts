@@ -29,16 +29,16 @@ describe('LLDAPRoleMapper', () => {
             expect(result).toBe(Role.PASSWORD_MANAGER);
         });
 
-        it('should return VIEWER role for users with no special groups', () => {
+        it('should return null for users with no special groups', () => {
             const mapper = new LLDAPRoleMapper();
             const result = mapper.mapGroupsToRole(['users', 'developers']);
-            expect(result).toBe(Role.VIEWER);
+            expect(result).toBeNull();
         });
 
-        it('should return VIEWER role for users with empty groups', () => {
+        it('should return null for users with empty groups', () => {
             const mapper = new LLDAPRoleMapper();
             const result = mapper.mapGroupsToRole([]);
-            expect(result).toBe(Role.VIEWER);
+            expect(result).toBeNull();
         });
 
         it('should return highest role when user has multiple role groups', () => {
@@ -114,7 +114,6 @@ describe('LLDAPRoleMapper', () => {
             expect(config.roleGroups[Role.ADMIN]).toEqual(['lldap_admin']);
             expect(config.roleGroups[Role.USER_MANAGER]).toEqual(['authelia_user_manager']);
             expect(config.roleGroups[Role.PASSWORD_MANAGER]).toEqual(['lldap_password_manager']);
-            expect(config.roleGroups[Role.VIEWER]).toEqual([]);
         });
     });
 
@@ -125,7 +124,6 @@ describe('LLDAPRoleMapper', () => {
                     [Role.ADMIN]: ['super_admins', 'lldap_admin'],
                     [Role.USER_MANAGER]: ['authelia_user_manager'],
                     [Role.PASSWORD_MANAGER]: ['lldap_password_manager'],
-                    [Role.VIEWER]: [],
                 },
             });
 
@@ -195,7 +193,6 @@ describe('LLDAP_DEFAULT_CONFIG', () => {
         expect(LLDAP_DEFAULT_CONFIG.roleGroups[Role.PASSWORD_MANAGER]).toEqual([
             'lldap_password_manager',
         ]);
-        expect(LLDAP_DEFAULT_CONFIG.roleGroups[Role.VIEWER]).toEqual([]);
     });
 
     it('should have correct default protected groups', () => {

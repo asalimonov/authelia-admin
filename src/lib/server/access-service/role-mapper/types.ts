@@ -19,9 +19,9 @@ export interface IRoleMapper {
     /**
      * Determine the highest role from a list of group names
      * @param groupNames - Array of group display names the user belongs to
-     * @returns The highest role the user has
+     * @returns The highest role the user has, or null if no role applies
      */
-    mapGroupsToRole(groupNames: string[]): Role;
+    mapGroupsToRole(groupNames: string[]): Role | null;
 
     /**
      * Get all groups that are protected from non-admin operations

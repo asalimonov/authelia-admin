@@ -1,11 +1,12 @@
 /**
  * Application roles - abstract from directory-specific groups
+ * Only users with one of these roles can access the application.
+ * Users without any role will be denied access.
  */
 export enum Role {
     ADMIN = 'admin',
     USER_MANAGER = 'user_manager',
     PASSWORD_MANAGER = 'password_manager',
-    VIEWER = 'viewer',
 }
 
 /**
@@ -41,20 +42,16 @@ export enum EntityType {
 
 /**
  * Role-to-permissions mapping using inheritance pattern
+ * PASSWORD_MANAGER is the base role with read-only access + password changes
  */
 export const RolePermissions = new Map<Role, Permission[]>();
 
-// Viewer: read-only access (base level for all authenticated users)
-RolePermissions.set(Role.VIEWER, [
+// Password Manager: read-only access + password changes (base role)
+RolePermissions.set(Role.PASSWORD_MANAGER, [
     Permission.USER_VIEW,
     Permission.USER_LIST,
     Permission.GROUP_VIEW,
     Permission.GROUP_LIST,
-]);
-
-// Password Manager: viewer + password changes
-RolePermissions.set(Role.PASSWORD_MANAGER, [
-    ...(RolePermissions.get(Role.VIEWER) || []),
     Permission.USER_CHANGE_PASSWORD,
 ]);
 
@@ -90,7 +87,7 @@ export interface AccessCheckResult {
  */
 export interface UserAccessContext {
     userId: string;
-    role: Role;
+    role: Role | null;
     permissions: Permission[];
     groups: string[];
 }

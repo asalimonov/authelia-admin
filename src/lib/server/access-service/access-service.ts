@@ -31,8 +31,9 @@ export interface IAccessService {
 
     /**
      * Get the role for a user based on their group memberships
+     * Returns null if user doesn't have any defined role
      */
-    getUserRole(userId: string): Promise<Role>;
+    getUserRole(userId: string): Promise<Role | null>;
 
     /**
      * Get all permissions for a user based on their role
@@ -103,7 +104,16 @@ export class AccessService implements IAccessService {
 
         const context = this.buildUserContext(userId, user.groups);
 
-        // 3. Check if user has the base permission
+        // 3. Check if user has a valid role (only admin, user_manager, password_manager can access)
+        if (context.role === null) {
+            return {
+                allowed: false,
+                reason: `User '${userId}' does not have a valid role to access this application`,
+                requiredRole: Role.PASSWORD_MANAGER,
+            };
+        }
+
+        // 4. Check if user has the base permission
         if (!context.permissions.includes(permission)) {
             return {
                 allowed: false,
@@ -112,12 +122,12 @@ export class AccessService implements IAccessService {
             };
         }
 
-        // 4. Admin bypasses all contextual restrictions
+        // 5. Admin bypasses all contextual restrictions
         if (context.role === Role.ADMIN) {
             return { allowed: true };
         }
 
-        // 5. Apply contextual restrictions based on permission type
+        // 6. Apply contextual restrictions based on permission type
         return this.checkContextualRestrictions(context, permission, entityType, entityId);
     }
 
@@ -250,7 +260,7 @@ export class AccessService implements IAccessService {
         return { allowed: true };
     }
 
-    async getUserRole(userId: string): Promise<Role> {
+    async getUserRole(userId: string): Promise<Role | null> {
         const context = await this.getUserContext(userId);
         return context.role;
     }
@@ -265,10 +275,10 @@ export class AccessService implements IAccessService {
         const user = await this.directoryService.getUserDetails(userId);
 
         if (!user) {
-            // Return minimal context for non-existent users
+            // Return minimal context for non-existent users (no role, no permissions)
             return {
                 userId,
-                role: Role.VIEWER,
+                role: null,
                 permissions: [],
                 groups: [],
             };
@@ -286,7 +296,8 @@ export class AccessService implements IAccessService {
     ): UserAccessContext {
         const groups = userGroups.map((g) => g.displayName);
         const role = this.roleMapper.mapGroupsToRole(groups);
-        const permissions = RolePermissions.get(role) || [];
+        // If no role is assigned, user has no permissions
+        const permissions = role ? RolePermissions.get(role) || [] : [];
 
         return {
             userId,
@@ -313,7 +324,7 @@ export class AccessService implements IAccessService {
      * Find the minimum role required for a permission
      */
     private getMinimumRoleForPermission(permission: Permission): Role {
-        const roleOrder: Role[] = [Role.VIEWER, Role.PASSWORD_MANAGER, Role.USER_MANAGER, Role.ADMIN];
+        const roleOrder: Role[] = [Role.PASSWORD_MANAGER, Role.USER_MANAGER, Role.ADMIN];
 
         for (const role of roleOrder) {
             const permissions = RolePermissions.get(role) || [];

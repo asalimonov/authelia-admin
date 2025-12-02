@@ -12,9 +12,10 @@ export abstract class BaseRoleMapper implements IRoleMapper {
     }
 
     /**
-     * Map groups to role using role hierarchy (admin > user_manager > password_manager > viewer)
+     * Map groups to role using role hierarchy (admin > user_manager > password_manager)
+     * Returns null if user doesn't have any of the defined roles
      */
-    mapGroupsToRole(groupNames: string[]): Role {
+    mapGroupsToRole(groupNames: string[]): Role | null {
         const normalizedGroups = groupNames.map((g) => g.toLowerCase());
 
         // Check in order of highest to lowest privilege
@@ -28,8 +29,9 @@ export abstract class BaseRoleMapper implements IRoleMapper {
             }
         }
 
-        // Default to viewer for any authenticated user
-        return Role.VIEWER;
+        // Return null if user doesn't have any defined role
+        // Users without a role will be denied access to the application
+        return null;
     }
 
     getProtectedGroups(): string[] {

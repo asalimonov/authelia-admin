@@ -1,20 +1,22 @@
 # Authelia Admin Control Panel
 
-A web-based administration interface for managing Authelia authentication server.
+A web-based administration interface for managing Authelia authentication server with LLDAP
 
 ![image](https://raw.githubusercontent.com/asalimonov/authelia-admin/refs/heads/main/public/authelia-admin.gif)
 
 ## Features
 
+- Management of users and groups in LLDAP
 - View and manage TOTP configurations
 - View TOTP history
 - Managemenent of banned users and IPs
-- Browse LDAP users and groups (due to LLDAP limitation)
-- Change user passwords via LDAP
+- Change user passwords
+- Roles: admin, user_manager (management of users), passowrd_manager (can change passwords). No access for regular users.
 
 ### Not yet implemented
 
-- Management of users via LDAP
+- Management of attributes of users and groups
+- Management of users and groups via LDAP protocol
 - PostgreSQL engine for Authelia
 - Browse and management of users in Authelia file provider
 
@@ -33,10 +35,30 @@ A web-based administration interface for managing Authelia authentication server
 
 ### Docker
 
+Example of `config.yml` for authelia-admin:
+
+```yaml
+authelia:
+  # Domain where Authelia is accessible
+  domain: auth.localhost.test
+  # Name of the session cookie used by Authelia
+  cookie_name: authelia_session
+  # Minimum authentication level required (1=password, 2=2FA)
+  min_auth_level: 1
+
+# Directory service configuration (LLDAP with GraphQL)
+directory_service:
+  type: lldap-graphql
+  endpoint: http://lldap:17170/api/graphql
+  user: admin
+  password: admin1234
+```
+
 ```bash
 docker run -p 9093:9093 \
   -v /path/to/authelia/config:/config \
   -v /path/to/authelia/data:/data \
+  -v /path/to/authelia-admin/cofig.yml:/opt/authelia-admin/config.yml:ro \
   ghcr.io/asalimonov/authelia-admin:latest
 ```
 
@@ -64,7 +86,7 @@ Use `admin` user with `admin1234` password. Confirmation code is `./test-data/au
 - Node.js 20+
 - Access to Authelia's configuration file
 - Access to Authelia's SQLite database
-- LDAP server (e.g., LLDAP) configured in Authelia
+- LLDAP server configured in Authelia
 
 ## Security Notes
 
