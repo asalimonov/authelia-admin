@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import YAML from 'yaml';
 import type { PageServerLoad } from './$types';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -14,25 +15,25 @@ export const load: PageServerLoad = async () => {
         // Check if filesystem notifier is configured
         if (!config?.notifier?.filesystem) {
             return {
-                error: 'Filesystem notifier is not configured in Authelia',
+                error: m.notifications_not_configured(),
                 hasNotifier: false,
                 notifications: null,
                 filename: null
             };
         }
-        
+
         // Get the notification file path
         const notificationFilePath = config.notifier.filesystem.filename;
-        
+
         if (!notificationFilePath) {
             return {
-                error: 'Notification file path not specified in configuration',
+                error: m.notifications_path_not_specified(),
                 hasNotifier: true,
                 notifications: null,
                 filename: null
             };
         }
-        
+
         // Try to read the notification file
         let notifications = '';
         try {
@@ -40,7 +41,7 @@ export const load: PageServerLoad = async () => {
         } catch (err) {
             // File might not exist yet (no notifications sent)
             if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-                notifications = 'No notifications have been sent yet.';
+                notifications = m.notifications_none_sent();
             } else {
                 throw err;
             }
@@ -55,7 +56,7 @@ export const load: PageServerLoad = async () => {
         
     } catch (err) {
         return {
-            error: `Failed to read configuration: ${(err as Error).message}`,
+            error: m.notifications_config_read_failed({ error: (err as Error).message }),
             hasNotifier: false,
             notifications: null,
             filename: null

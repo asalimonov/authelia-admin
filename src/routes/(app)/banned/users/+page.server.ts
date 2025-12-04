@@ -2,6 +2,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
 import { fail } from '@sveltejs/kit';
 import { sanitizeString, isValidUsername } from '$lib/utils/validation';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -9,15 +10,15 @@ export const load: PageServerLoad = async () => {
         
         if (!dbConfig) {
             return {
-                error: 'Database configuration not found in Authelia config',
+                error: m.db_config_not_found(),
                 storageType: null,
                 bannedUsers: []
             };
         }
-        
+
         if (dbConfig.type !== 'sqlite') {
             return {
-                error: `Database type "${dbConfig.type}" is not yet supported. Only SQLite is currently supported.`,
+                error: m.db_type_not_supported({ dbType: dbConfig.type }),
                 storageType: dbConfig.type,
                 bannedUsers: []
             };
@@ -40,7 +41,7 @@ export const load: PageServerLoad = async () => {
         
     } catch (error) {
         return {
-            error: `Failed to load banned users: ${(error as Error).message}`,
+            error: m.banned_users_load_failed({ error: (error as Error).message }),
             storageType: null,
             bannedUsers: []
         };
@@ -58,21 +59,21 @@ export const actions: Actions = {
             const isPermanent = formData.get('permanent') === 'true';
             
             if (!username) {
-                return fail(400, { error: 'Username is required' });
+                return fail(400, { error: m.validation_username_required() });
             }
-            
+
             if (!isValidUsername(username)) {
-                return fail(400, { error: 'Invalid username format' });
+                return fail(400, { error: m.validation_username_invalid() });
             }
-            
+
             const dbConfig = await getDatabaseConfig();
-            
+
             if (!dbConfig) {
-                return fail(500, { error: 'Database configuration not found' });
+                return fail(500, { error: m.db_config_not_found() });
             }
-            
+
             if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: `Database type "${dbConfig.type}" is not yet supported` });
+                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
             }
             
             const adapter = await createDatabaseAdapter(dbConfig);
@@ -82,25 +83,25 @@ export const actions: Actions = {
                 if (!isPermanent && expires) {
                     expiresDate = new Date(expires);
                     if (isNaN(expiresDate.getTime())) {
-                        return fail(400, { error: 'Invalid expiration date' });
+                        return fail(400, { error: m.common_invalid_expiration_date() });
                     }
                 }
-                
+
                 const sanitizedReason = reason ? sanitizeString(reason, 500) : null;
                 const success = await adapter.createBannedUser(username, expiresDate, source, sanitizedReason);
-                
+
                 if (!success) {
-                    return fail(500, { error: `Failed to ban user "${username}"` });
+                    return fail(500, { error: m.banned_user_ban_failed({ username }) });
                 }
-                
-                return { success: true, message: `User "${username}" has been banned` };
+
+                return { success: true, message: m.banned_user_ban_success({ username }) };
             } finally {
                 await adapter.close();
             }
-            
+
         } catch (error) {
             console.error('Error creating banned user:', error);
-            return fail(500, { error: `Failed to ban user: ${(error as Error).message}` });
+            return fail(500, { error: m.banned_user_ban_error({ error: (error as Error).message }) });
         }
     },
     
@@ -109,38 +110,38 @@ export const actions: Actions = {
             const formData = await request.formData();
             const id = formData.get('id')?.toString();
             const username = formData.get('username')?.toString();
-            
+
             if (!id) {
-                return fail(400, { error: 'Ban ID is required' });
+                return fail(400, { error: m.common_ban_id_required() });
             }
-            
+
             const dbConfig = await getDatabaseConfig();
-            
+
             if (!dbConfig) {
-                return fail(500, { error: 'Database configuration not found' });
+                return fail(500, { error: m.db_config_not_found() });
             }
-            
+
             if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: `Database type "${dbConfig.type}" is not yet supported` });
+                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
             }
-            
+
             const adapter = await createDatabaseAdapter(dbConfig);
-            
+
             try {
                 const success = await adapter.deleteBannedUser(parseInt(id));
-                
+
                 if (!success) {
-                    return fail(404, { error: `Banned user record not found` });
+                    return fail(404, { error: m.banned_user_not_found() });
                 }
-                
-                return { success: true, message: `Ban for user "${username}" has been deleted` };
+
+                return { success: true, message: m.banned_user_delete_success({ username: username || '' }) };
             } finally {
                 await adapter.close();
             }
-            
+
         } catch (error) {
             console.error('Error deleting banned user:', error);
-            return fail(500, { error: `Failed to delete banned user: ${(error as Error).message}` });
+            return fail(500, { error: m.banned_user_delete_error({ error: (error as Error).message }) });
         }
     }
 };

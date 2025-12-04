@@ -2,6 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
+	import * as m from '$lib/paraglide/messages';
 
 	export let data: PageData;
 	export let form: ActionData;
@@ -34,49 +35,47 @@
 		clientErrors = [];
 
 		if (!userId.trim()) {
-			clientErrors.push('User ID is required');
+			clientErrors.push(m.validation_userid_required());
 		} else if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(userId.trim())) {
-			clientErrors.push(
-				'User ID must start with a letter or number and can only contain letters, numbers, dots, underscores, and hyphens'
-			);
+			clientErrors.push(m.validation_userid_format());
 		}
 
 		if (!email.trim()) {
-			clientErrors.push('Email is required');
+			clientErrors.push(m.validation_email_required());
 		} else if (
 			!/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(
 				email.trim()
 			)
 		) {
-			clientErrors.push('Invalid email format');
+			clientErrors.push(m.validation_email_format());
 		}
 
 		if (!displayName.trim()) {
-			clientErrors.push('Display name is required');
+			clientErrors.push(m.validation_displayname_required());
 		}
 
 		if (!password) {
-			clientErrors.push('Password is required');
+			clientErrors.push(m.validation_password_required());
 		} else {
 			if (password.length < 8) {
-				clientErrors.push('Password must be at least 8 characters');
+				clientErrors.push(m.validation_password_min_length());
 			}
 			if (password.length > 64) {
-				clientErrors.push('Password must be at most 64 characters');
+				clientErrors.push(m.validation_password_max_length());
 			}
 			if (!/[a-z]/.test(password)) {
-				clientErrors.push('Password must contain at least one lowercase letter');
+				clientErrors.push(m.validation_password_lowercase());
 			}
 			if (!/[A-Z]/.test(password)) {
-				clientErrors.push('Password must contain at least one uppercase letter');
+				clientErrors.push(m.validation_password_uppercase());
 			}
 			if (!/[0-9]/.test(password)) {
-				clientErrors.push('Password must contain at least one number');
+				clientErrors.push(m.validation_password_number());
 			}
 		}
 
 		if (password !== confirmPassword) {
-			clientErrors.push('Passwords do not match');
+			clientErrors.push(m.validation_password_mismatch());
 		}
 
 		return clientErrors.length === 0;
@@ -85,32 +84,32 @@
 
 <div class="space-y-6">
 	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Create New User</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{m.user_new_title()}</h1>
 		<a
 			href="{base}/users"
 			class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors inline-block text-center"
 		>
-			Back to Users
+			{m.user_new_back()}
 		</a>
 	</div>
 
 	{#if data.error}
 		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-			<p class="text-red-800 dark:text-red-200 font-semibold">Access Denied</p>
+			<p class="text-red-800 dark:text-red-200 font-semibold">{m.common_access_denied()}</p>
 			<p class="text-red-600 dark:text-red-300">{data.error}</p>
 		</div>
 	{/if}
 
 	{#if form?.error}
 		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-			<p class="text-red-800 dark:text-red-200 font-semibold">Error</p>
+			<p class="text-red-800 dark:text-red-200 font-semibold">{m.common_error()}</p>
 			<p class="text-red-600 dark:text-red-300">{form.error}</p>
 		</div>
 	{/if}
 
 	{#if clientErrors.length > 0}
 		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-			<p class="text-red-800 dark:text-red-200 font-semibold">Validation Error</p>
+			<p class="text-red-800 dark:text-red-200 font-semibold">{m.common_validation_error()}</p>
 			<ul class="list-disc list-inside text-red-600 dark:text-red-300">
 				{#each clientErrors as error}
 					<li>{error}</li>
@@ -121,7 +120,7 @@
 
 	{#if form?.success}
 		<div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-			<p class="text-green-800 dark:text-green-200 font-semibold">Success</p>
+			<p class="text-green-800 dark:text-green-200 font-semibold">{m.common_success()}</p>
 			<p class="text-green-600 dark:text-green-300">{form.message}</p>
 		</div>
 	{/if}
@@ -129,9 +128,9 @@
 	{#if data.canCreate}
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-xl font-bold text-gray-900 dark:text-white">User Details</h2>
+				<h2 class="text-xl font-bold text-gray-900 dark:text-white">{m.user_new_section_title()}</h2>
 				<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-					Fill in the details below to create a new user account.
+					{m.user_new_section_subtitle()}
 				</p>
 			</div>
 
@@ -158,7 +157,7 @@
 								for="userId"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								User ID <span class="text-red-500">*</span>
+								{m.user_new_userid_label()} <span class="text-red-500">{m.common_required()}</span>
 							</label>
 							<input
 								id="userId"
@@ -167,10 +166,10 @@
 								required
 								bind:value={userId}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="Enter user ID (username)"
+								placeholder={m.user_new_userid_placeholder()}
 							/>
 							<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-								Must start with a letter or number. Only letters, numbers, dots, underscores, and hyphens allowed.
+								{m.user_new_userid_hint()}
 							</p>
 						</div>
 
@@ -179,7 +178,7 @@
 								for="email"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								Email <span class="text-red-500">*</span>
+								{m.user_new_email_label()} <span class="text-red-500">{m.common_required()}</span>
 							</label>
 							<input
 								id="email"
@@ -188,7 +187,7 @@
 								required
 								bind:value={email}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="user@example.com"
+								placeholder={m.user_new_email_placeholder()}
 							/>
 						</div>
 					</div>
@@ -199,7 +198,7 @@
 							for="displayName"
 							class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 						>
-							Display Name <span class="text-red-500">*</span>
+							{m.user_new_displayname_label()} <span class="text-red-500">{m.common_required()}</span>
 						</label>
 						<input
 							id="displayName"
@@ -208,7 +207,7 @@
 							required
 							bind:value={displayName}
 							class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-							placeholder="John Doe"
+							placeholder={m.user_new_displayname_placeholder()}
 						/>
 					</div>
 
@@ -219,7 +218,7 @@
 								for="firstName"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								First Name
+								{m.user_new_firstname_label()}
 							</label>
 							<input
 								id="firstName"
@@ -227,7 +226,7 @@
 								type="text"
 								bind:value={firstName}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="John (optional)"
+								placeholder={m.user_new_firstname_placeholder()}
 							/>
 						</div>
 
@@ -236,7 +235,7 @@
 								for="lastName"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								Last Name
+								{m.user_new_lastname_label()}
 							</label>
 							<input
 								id="lastName"
@@ -244,7 +243,7 @@
 								type="text"
 								bind:value={lastName}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="Doe (optional)"
+								placeholder={m.user_new_lastname_placeholder()}
 							/>
 						</div>
 					</div>
@@ -256,7 +255,7 @@
 								for="password"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								Password <span class="text-red-500">*</span>
+								{m.user_new_password_label()} <span class="text-red-500">{m.common_required()}</span>
 							</label>
 							<input
 								id="password"
@@ -265,7 +264,7 @@
 								required
 								bind:value={password}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="Enter password"
+								placeholder={m.user_new_password_placeholder()}
 							/>
 						</div>
 
@@ -274,7 +273,7 @@
 								for="confirmPassword"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								Confirm Password <span class="text-red-500">*</span>
+								{m.user_new_confirm_password_label()} <span class="text-red-500">{m.common_required()}</span>
 							</label>
 							<input
 								id="confirmPassword"
@@ -283,19 +282,19 @@
 								required
 								bind:value={confirmPassword}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="Confirm password"
+								placeholder={m.user_new_confirm_password_placeholder()}
 							/>
 						</div>
 					</div>
 
 					<!-- Password Requirements -->
 					<div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-						<p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Password Requirements:</p>
+						<p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">{m.user_new_password_requirements_title()}</p>
 						<ul class="text-sm text-blue-700 dark:text-blue-300 list-disc list-inside space-y-1">
-							<li>At least 8 characters long</li>
-							<li>At least one lowercase letter</li>
-							<li>At least one uppercase letter</li>
-							<li>At least one number</li>
+							<li>{m.user_new_password_req_length()}</li>
+							<li>{m.user_new_password_req_lowercase()}</li>
+							<li>{m.user_new_password_req_uppercase()}</li>
+							<li>{m.user_new_password_req_number()}</li>
 						</ul>
 					</div>
 
@@ -308,7 +307,7 @@
 							disabled={isSubmitting}
 							class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
 						>
-							{isSubmitting ? 'Creating...' : 'Create'}
+							{isSubmitting ? m.user_new_button_creating() : m.user_new_button_create()}
 						</button>
 						<button
 							type="submit"
@@ -317,19 +316,19 @@
 							disabled={isSubmitting}
 							class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
 						>
-							{isSubmitting ? 'Creating...' : 'Create +1'}
+							{isSubmitting ? m.user_new_button_creating() : m.user_new_button_create_another()}
 						</button>
 						<a
 							href="{base}/users"
 							class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-center font-medium"
 						>
-							Cancel
+							{m.user_new_button_cancel()}
 						</a>
 					</div>
 
 					<p class="text-sm text-gray-500 dark:text-gray-400">
-						<strong>Create</strong> will create the user and redirect to their profile page.
-						<strong>Create +1</strong> will create the user and clear the form for another entry.
+						<strong>{m.user_new_help_create()}</strong> {m.user_new_help_create_text()}
+						<strong>{m.user_new_help_create_another()}</strong> {m.user_new_help_create_another_text()}
 					</p>
 				</form>
 			</div>
@@ -337,7 +336,7 @@
 	{:else}
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 			<p class="text-gray-600 dark:text-gray-400">
-				You do not have permission to create new users.
+				{m.user_new_no_permission()}
 			</p>
 		</div>
 	{/if}

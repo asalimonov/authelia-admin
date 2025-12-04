@@ -2,19 +2,20 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
-	
+	import * as m from '$lib/paraglide/messages';
+
 	export let data: PageData;
-	
+
 	let deletingId: number | null = null;
 	let showAddForm = false;
 	let isSubmitting = false;
-	
+
 	function formatDate(dateString: string | null): string {
-		if (!dateString) return 'Never';
+		if (!dateString) return m.common_never();
 		const date = new Date(dateString);
 		return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 	}
-	
+
 	interface BanRecord {
 		id: number;
 		ip: string;
@@ -29,30 +30,30 @@
 	function getStatus(ban: BanRecord): { text: string; class: string } {
 		// Check if manually revoked
 		if (ban.revoked) {
-			return { text: 'Revoked', class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
+			return { text: m.status_revoked(), class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
 		}
-		
+
 		// Check if expired
 		if (ban.expired) {
-			return { text: 'Expired', class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
+			return { text: m.status_expired(), class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
 		}
-		
+
 		// Check if has expiration date
 		if (ban.expires) {
 			const expiresDate = new Date(ban.expires);
 			const now = new Date();
 			if (expiresDate <= now) {
-				return { text: 'Expired', class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
+				return { text: m.status_expired(), class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
 			}
-			return { text: 'Active', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
+			return { text: m.status_active(), class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
 		}
-		
+
 		// Permanent ban
-		return { text: 'Permanent', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
+		return { text: m.status_permanent(), class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
 	}
-	
+
 	function confirmDelete(id: number, ip: string) {
-		if (confirm(`Are you sure you want to delete the ban for IP "${ip}"?`)) {
+		if (confirm(m.banned_ip_delete_confirm({ ip }))) {
 			deletingId = id;
 			return true;
 		}
@@ -63,32 +64,32 @@
 <div class="space-y-6">
 	{#if data.error}
 		<div class="bg-red-50 border border-red-200 rounded-lg p-4">
-			<p class="text-red-800 font-semibold">Error</p>
+			<p class="text-red-800 font-semibold">{m.common_error()}</p>
 			<p class="text-red-600">{data.error}</p>
 		</div>
 	{/if}
-	
+
 	{#if data.storageType && data.storageType !== 'sqlite'}
 		<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-			<p class="text-yellow-800 font-semibold">Storage Type Not Supported</p>
-			<p class="text-yellow-600">Current storage type: {data.storageType}. Only SQLite is currently supported.</p>
+			<p class="text-yellow-800 font-semibold">{m.storage_not_supported_title()}</p>
+			<p class="text-yellow-600">{m.storage_not_supported_text({ type: data.storageType })}</p>
 		</div>
 	{/if}
-	
+
 	<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
 			<h2 class="text-xl font-bold text-gray-900 dark:text-white">
-				Banned IP Addresses
+				{m.banned_ip_title()}
 			</h2>
 			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 				{#if data.dbPath}
-					Database: {data.dbPath}
+					{m.database_label({ path: data.dbPath })}
 				{:else}
-					Manage banned IP addresses
+					{m.banned_ip_subtitle()}
 				{/if}
 			</p>
 		</div>
-		
+
 		<div class="p-6">
 			<!-- Add Ban Button -->
 			<div class="mb-6">
@@ -96,14 +97,14 @@
 					on:click={() => showAddForm = !showAddForm}
 					class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
 				>
-					{showAddForm ? 'Cancel' : 'Ban IP Address'}
+					{showAddForm ? m.common_cancel() : m.banned_ip_ban_button()}
 				</button>
 			</div>
-			
+
 			<!-- Add Ban Form -->
 			{#if showAddForm}
 				<div class="mb-6 p-6 bg-gray-50 dark:bg-gray-900 rounded-lg">
-					<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ban New IP Address</h3>
+					<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{m.banned_ip_add_title()}</h3>
 					<form
 						method="POST"
 						action="{base}/banned/ip?/create"
@@ -120,7 +121,7 @@
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
 								<label for="ip" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-									IP Address <span class="text-red-500">*</span>
+									{m.banned_ip_address_label()} <span class="text-red-500">{m.common_required()}</span>
 								</label>
 								<input
 									id="ip"
@@ -128,31 +129,31 @@
 									type="text"
 									required
 									class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
-									placeholder="192.168.1.1 or 2001:db8::1"
+									placeholder={m.banned_ip_address_placeholder()}
 								/>
-								<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">IPv4 or IPv6 address</p>
+								<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{m.banned_ip_address_hint()}</p>
 							</div>
-							
+
 							<div>
 								<label for="source" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-									Source
+									{m.banned_ip_source_label()}
 								</label>
 								<select
 									id="source"
 									name="source"
 									class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 								>
-									<option value="admin">Admin</option>
-									<option value="system">System</option>
-									<option value="security">Security</option>
-									<option value="firewall">Firewall</option>
-									<option value="manual">Manual</option>
+									<option value="admin">{m.banned_ip_source_admin()}</option>
+									<option value="system">{m.banned_ip_source_system()}</option>
+									<option value="security">{m.banned_ip_source_security()}</option>
+									<option value="firewall">{m.banned_ip_source_firewall()}</option>
+									<option value="manual">{m.banned_ip_source_manual()}</option>
 								</select>
 							</div>
-							
+
 							<div>
 								<label for="expires" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-									Expires
+									{m.banned_ip_expires_label()}
 								</label>
 								<input
 									id="expires"
@@ -161,7 +162,7 @@
 									class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
 								/>
 							</div>
-							
+
 							<div>
 								<div class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 									&nbsp;
@@ -179,44 +180,44 @@
 											}
 										}}
 									/>
-									<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Permanent Ban</span>
+									<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{m.banned_ip_permanent_label()}</span>
 								</label>
 							</div>
-							
+
 							<div class="md:col-span-2">
 								<label for="reason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-									Reason
+									{m.banned_ip_reason_label()}
 								</label>
 								<textarea
 									id="reason"
 									name="reason"
 									rows="2"
 									class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-									placeholder="Enter reason for ban (optional)"
+									placeholder={m.banned_ip_reason_placeholder()}
 								></textarea>
 							</div>
 						</div>
-						
+
 						<div class="flex gap-2">
 							<button
 								type="submit"
 								disabled={isSubmitting}
 								class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
 							>
-								{isSubmitting ? 'Creating...' : 'Ban IP'}
+								{isSubmitting ? m.banned_ip_creating() : m.banned_ip_ban_button()}
 							</button>
 							<button
 								type="button"
 								on:click={() => showAddForm = false}
 								class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
 							>
-								Cancel
+								{m.common_cancel()}
 							</button>
 						</div>
 					</form>
 				</div>
 			{/if}
-			
+
 			{#if data.bannedIPs && data.bannedIPs.length > 0}
 				<!-- Table -->
 				<div class="overflow-x-auto">
@@ -224,25 +225,25 @@
 						<thead class="bg-gray-50 dark:bg-gray-700">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									IP Address
+									{m.banned_ip_table_address()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Ban Time
+									{m.banned_ip_table_ban_time()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Expires
+									{m.banned_ip_table_expires()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Source
+									{m.banned_ip_table_source()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Reason
+									{m.banned_ip_table_reason()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Status
+									{m.banned_ip_table_status()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Actions
+									{m.banned_ip_table_actions()}
 								</th>
 							</tr>
 						</thead>
@@ -257,7 +258,7 @@
 										{formatDate(ban.time)}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-										{ban.expires ? formatDate(ban.expires) : 'Never'}
+										{ban.expires ? formatDate(ban.expires) : m.common_never()}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
 										{ban.source}
@@ -293,7 +294,7 @@
 												disabled={deletingId === ban.id}
 												class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
 											>
-												{deletingId === ban.id ? 'Deleting...' : 'Delete'}
+												{deletingId === ban.id ? m.common_deleting() : m.common_delete()}
 											</button>
 										</form>
 									</td>
@@ -304,7 +305,7 @@
 				</div>
 			{:else if !data.error}
 				<div class="text-center py-8 text-gray-500 dark:text-gray-400">
-					No banned IP addresses found in the database.
+					{m.banned_ip_empty()}
 				</div>
 			{/if}
 		</div>

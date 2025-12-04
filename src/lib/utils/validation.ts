@@ -1,3 +1,5 @@
+import * as m from '$lib/paraglide/messages';
+
 export function formatDate(dateString: string | undefined): string {
     if (!dateString) return 'N/A';
     try {
@@ -63,23 +65,19 @@ export function validatePassword(password: string): {
     const errors: string[] = [];
     
     if (password.length < 8) {
-        errors.push('Password must be at least 8 characters long');
+        errors.push(m.validation_password_min_length());
     }
-    
     if (password.length > 64) {
-        errors.push('Password must be at most 64 characters long');
+        errors.push(m.validation_password_max_length());
     }
-    
     if (!/[a-z]/.test(password)) {
-        errors.push('Password must contain at least one lowercase letter');
+        errors.push(m.validation_password_lowercase());
     }
-    
     if (!/[A-Z]/.test(password)) {
-        errors.push('Password must contain at least one uppercase letter');
+        errors.push(m.validation_password_uppercase());
     }
-    
     if (!/[0-9]/.test(password)) {
-        errors.push('Password must contain at least one number');
+        errors.push(m.validation_password_number());
     }
 
     return {

@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { getDirectoryServiceAsync, type Group } from '$lib/server/directory-service';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -26,7 +27,7 @@ export const load: PageServerLoad = async () => {
         console.error('Error fetching groups:', error);
 
         return {
-            error: `Failed to fetch groups: ${(error as Error).message}`,
+            error: m.groups_fetch_failed({ error: (error as Error).message }),
             groups: []
         };
     }

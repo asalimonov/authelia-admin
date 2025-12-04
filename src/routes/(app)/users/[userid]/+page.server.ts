@@ -5,6 +5,7 @@ import { validatePassword } from '$lib/utils/validation';
 import { getDirectoryServiceAsync } from '$lib/server/directory-service';
 import { getAccessService, Permission, EntityType, type DirectoryServiceType } from '$lib/server/access-service';
 import { getConfigAsync } from '$lib/server/config';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     const { userid } = params;
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
         if (!user) {
             return {
-                error: `User "${userid}" not found`,
+                error: m.user_not_found({ userId: userid }),
                 user: null,
                 canEditUser: false,
                 canDeleteUser: false,
@@ -67,7 +68,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
     } catch (error) {
         return {
-            error: `Failed to load user: ${(error as Error).message}`,
+            error: m.user_load_failed({ error: (error as Error).message }),
             user: null,
             canEditUser: false,
             canDeleteUser: false,
@@ -99,7 +100,7 @@ export const actions: Actions = {
             );
 
             if (!isOwnAccount && !hasPasswordPermission) {
-                return fail(403, { error: 'You do not have permission to change this user\'s password' });
+                return fail(403, { error: m.user_password_change_no_permission() });
             }
 
             const formData = await request.formData();
@@ -107,11 +108,11 @@ export const actions: Actions = {
             const repeatPassword = formData.get('repeatPassword')?.toString();
 
             if (!newPassword || !repeatPassword) {
-                return fail(400, { error: 'Password fields are required' });
+                return fail(400, { error: m.validation_password_required() });
             }
 
             if (newPassword !== repeatPassword) {
-                return fail(400, { error: 'Passwords do not match' });
+                return fail(400, { error: m.validation_password_mismatch() });
             }
 
             // Validate password strength
@@ -123,18 +124,18 @@ export const actions: Actions = {
             const result = await directoryService.changePassword(userid, newPassword);
 
             if (!result.success) {
-                return fail(500, { error: result.error || 'Failed to change password' });
+                return fail(500, { error: result.error || m.user_password_change_failed() });
             }
 
             return {
                 success: true,
-                message: 'Password changed successfully',
+                message: m.user_password_change_success(),
                 type: 'password'
             };
 
         } catch (error) {
             console.error('Error changing password:', error);
-            return fail(500, { error: `Failed to change password: ${(error as Error).message}` });
+            return fail(500, { error: m.user_password_change_error({ error: (error as Error).message }) });
         }
     },
 
@@ -159,13 +160,13 @@ export const actions: Actions = {
             );
 
             if (!canDeleteUser) {
-                return fail(403, { error: 'You do not have permission to delete this user' });
+                return fail(403, { error: m.user_delete_no_permission() });
             }
 
             const result = await directoryService.deleteUser(userid);
 
             if (!result.success) {
-                return fail(500, { error: result.error || 'Failed to delete user' });
+                return fail(500, { error: result.error || m.user_delete_failed() });
             }
 
             // Redirect to users list after successful deletion
@@ -178,7 +179,7 @@ export const actions: Actions = {
             }
 
             console.error('Error deleting user:', error);
-            return fail(500, { error: `Failed to delete user: ${(error as Error).message}` });
+            return fail(500, { error: m.user_delete_error({ error: (error as Error).message }) });
         }
     }
 };

@@ -2,55 +2,57 @@
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import type { LayoutData } from './$types';
-	
+	import * as m from '$lib/paraglide/messages';
+	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
+
 	export let data: LayoutData;
-	
+
 	// Track which menu is open
 	let openMenu: string | null = null;
-	
+
 	// Toggle submenu
 	function toggleMenu(menu: string) {
 		openMenu = openMenu === menu ? null : menu;
 	}
-	
+
 	// Close menu when clicking outside
 	function closeMenus() {
 		openMenu = null;
 	}
-	
-	// Menu items with sub-items
-	const menuItems = [
+
+	// Menu items with sub-items - using reactive statement for translations
+	$: menuItems = [
 		{
-			name: 'Users',
+			name: m.nav_users(),
 			href: `${base}/users`,
 			children: []
 		},
 		{
-			name: 'Groups',
+			name: m.nav_groups(),
 			href: `${base}/groups`,
 			children: []
 		},
 		{
-			name: 'TOTP',
+			name: m.nav_totp(),
 			href: `${base}/totp`,
 			children: [
-				{ name: 'Configurations', href: `${base}/totp/configurations` },
-				{ name: 'History', href: `${base}/totp/history` }
+				{ name: m.nav_totp_configurations(), href: `${base}/totp/configurations` },
+				{ name: m.nav_totp_history(), href: `${base}/totp/history` }
 			]
 		},
 		{
-			name: 'Banned',
+			name: m.nav_banned(),
 			href: `${base}/banned`,
 			children: [
-				{ name: 'IP', href: `${base}/banned/ip` },
-				{ name: 'Users', href: `${base}/banned/users` }
+				{ name: m.nav_banned_ip(), href: `${base}/banned/ip` },
+				{ name: m.nav_banned_users(), href: `${base}/banned/users` }
 			]
 		},
 		{
-			name: 'Notifications',
+			name: m.nav_notifications(),
 			href: `${base}/notifications`,
 			children: [
-				{ name: 'File', href: `${base}/notifications/file` }
+				{ name: m.nav_notifications_file(), href: `${base}/notifications/file` }
 			]
 		}
 	];
@@ -66,28 +68,31 @@
 				<!-- Logo/Title -->
 				<div class="flex items-center">
 					<h1 class="text-xl font-bold text-gray-900 dark:text-white">
-						Authelia Admin Panel
+						{m.app_title()}
 					</h1>
 				</div>
-				
-				<!-- User info -->
-				{#if data?.user}
-					<div class="flex items-center text-sm text-gray-700 dark:text-gray-300">
-						<span class="mr-4">
-							User: <span class="font-semibold">{data.user.username}</span>
-						</span>
-						<a 
-							href="/logout"
-							class="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-						>
-							Logout
-						</a>
-					</div>
-				{/if}
+
+				<!-- User info and Language Switcher -->
+				<div class="flex items-center gap-4">
+					<LanguageSwitcher />
+					{#if data?.user}
+						<div class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+							<span class="mr-4">
+								{m.app_user_label()}: <span class="font-semibold">{data.user.username}</span>
+							</span>
+							<a
+								href="/logout"
+								class="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+							>
+								{m.app_logout()}
+							</a>
+						</div>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</header>
-	
+
 	<!-- Navigation -->
 	<nav class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
 		<div class="container mx-auto px-4">
@@ -105,7 +110,7 @@
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 								</svg>
 							</button>
-							
+
 							<!-- Submenu -->
 							{#if openMenu === item.name}
 								<div class="absolute left-0 top-full z-50 bg-white dark:bg-gray-800 shadow-lg rounded-b border border-gray-200 dark:border-gray-700 min-w-[200px]">
@@ -138,7 +143,7 @@
 			</ul>
 		</div>
 	</nav>
-	
+
 	<!-- Main content -->
 	<main class="container mx-auto px-4 py-8">
 		<slot />

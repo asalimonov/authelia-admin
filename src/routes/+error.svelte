@@ -1,24 +1,26 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
+	import * as m from '$lib/paraglide/messages';
 
-	const errorMessages: Record<number, string> = {
-		400: 'Bad Request',
-		401: 'Unauthorized',
-		403: 'Forbidden',
-		404: 'Not Found',
-		405: 'Method Not Allowed',
-		408: 'Request Timeout',
-		429: 'Too Many Requests',
-		500: 'Internal Server Error',
-		501: 'Not Implemented',
-		502: 'Bad Gateway',
-		503: 'Service Unavailable',
-		504: 'Gateway Timeout'
+	// Map status codes to translation keys
+	const errorKeys: Record<number, () => string> = {
+		400: m.error_400,
+		401: m.error_401,
+		403: m.error_403,
+		404: m.error_404,
+		405: m.error_405,
+		408: m.error_408,
+		429: m.error_429,
+		500: m.error_500,
+		501: m.error_501,
+		502: m.error_502,
+		503: m.error_503,
+		504: m.error_504
 	};
 
 	$: status = $page.status;
-	$: message = $page.error?.message || errorMessages[status] || 'An error occurred';
+	$: message = $page.error?.message || (errorKeys[status] ? errorKeys[status]() : m.error_generic());
 	$: isServerError = status >= 500;
 </script>
 
@@ -39,13 +41,13 @@
 				href="/"
 				class="text-blue-600 dark:text-blue-400 hover:underline"
 			>
-				Authelia
+				{m.error_link_authelia()}
 			</a>
 			<a
 				href="{base}/"
 				class="text-blue-600 dark:text-blue-400 hover:underline"
 			>
-				Authelia Admin Panel
+				{m.error_link_admin()}
 			</a>
 		</nav>
 	</div>

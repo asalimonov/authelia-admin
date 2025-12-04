@@ -2,6 +2,7 @@ import type { PageServerLoad } from './$types';
 import { getAccessService, Permission, EntityType, type DirectoryServiceType } from '$lib/server/access-service';
 import { getDirectoryServiceAsync } from '$lib/server/directory-service';
 import { getConfigAsync } from '$lib/server/config';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async ({ locals }) => {
     // Check if user can create users
@@ -35,7 +36,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         console.error('Error fetching users:', error);
 
         return {
-            error: `Failed to fetch users: ${(error as Error).message}`,
+            error: m.users_fetch_failed({ error: (error as Error).message }),
             users: [],
             canCreateUsers
         };

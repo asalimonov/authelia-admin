@@ -5,6 +5,7 @@ import { getAccessService, Permission, EntityType, type DirectoryServiceType } f
 import { getDirectoryServiceAsync, type CreateUserInput } from '$lib/server/directory-service';
 import { isValidEmail, isValidUsername, sanitizeString, validatePassword } from '$lib/utils/validation';
 import { getConfigAsync } from '$lib/server/config';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async ({ locals }) => {
     const username = locals.user?.username || '';
@@ -26,7 +27,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
         if (!result.allowed) {
             return {
-                error: result.reason || 'You do not have permission to create users',
+                error: result.reason || m.user_create_no_permission(),
                 canCreate: false
             };
         }
@@ -38,7 +39,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     } catch (error) {
         console.error('Error checking create user permission:', error);
         return {
-            error: `Failed to check permissions: ${(error as Error).message}`,
+            error: m.user_permissions_check_failed({ error: (error as Error).message }),
             canCreate: false
         };
     }
@@ -65,7 +66,7 @@ export const actions: Actions = {
 
             if (!permissionCheck.allowed) {
                 return fail(403, {
-                    error: permissionCheck.reason || 'You do not have permission to create users'
+                    error: permissionCheck.reason || m.user_create_no_permission()
                 });
             }
 
@@ -83,23 +84,23 @@ export const actions: Actions = {
             const errors: string[] = [];
 
             if (!userId) {
-                errors.push('User ID is required');
+                errors.push(m.validation_user_id_required());
             } else if (!isValidUsername(userId)) {
-                errors.push('User ID must start with a letter or number and can only contain letters, numbers, dots, underscores, and hyphens (max 64 characters)');
+                errors.push(m.validation_user_id_format());
             }
 
             if (!email) {
-                errors.push('Email is required');
+                errors.push(m.validation_email_required());
             } else if (!isValidEmail(email)) {
-                errors.push('Invalid email format');
+                errors.push(m.validation_email_invalid());
             }
 
             if (!displayName) {
-                errors.push('Display name is required');
+                errors.push(m.validation_display_name_required());
             }
 
             if (!password) {
-                errors.push('Password is required');
+                errors.push(m.validation_password_required());
             } else {
                 const passwordValidation = validatePassword(password);
                 if (!passwordValidation.isValid) {
@@ -108,7 +109,7 @@ export const actions: Actions = {
             }
 
             if (password !== confirmPassword) {
-                errors.push('Passwords do not match');
+                errors.push(m.validation_password_mismatch());
             }
 
             if (errors.length > 0) {
@@ -122,7 +123,7 @@ export const actions: Actions = {
             const existingUser = await directoryService.getUserDetails(userId);
             if (existingUser) {
                 return fail(400, {
-                    error: `User with ID '${userId}' already exists`,
+                    error: m.user_already_exists({ userId }),
                     values: { userId, email, displayName, firstName, lastName }
                 });
             }
@@ -131,7 +132,7 @@ export const actions: Actions = {
             const existingEmailUser = await directoryService.getUserByEmail(email);
             if (existingEmailUser) {
                 return fail(400, {
-                    error: `A user with email '${email}' already exists`,
+                    error: m.user_email_already_exists({ email }),
                     values: { userId, email, displayName, firstName, lastName }
                 });
             }
@@ -161,7 +162,7 @@ export const actions: Actions = {
             if (action === 'createAndNew') {
                 return {
                     success: true,
-                    message: `User '${newUser.id}' created successfully`,
+                    message: m.user_create_success({ userId: newUser.id }),
                     clearForm: true
                 };
             }
@@ -176,7 +177,7 @@ export const actions: Actions = {
 
             console.error('Error creating user:', error);
             return fail(500, {
-                error: `Failed to create user: ${(error as Error).message}`
+                error: m.user_create_error({ error: (error as Error).message })
             });
         }
     }

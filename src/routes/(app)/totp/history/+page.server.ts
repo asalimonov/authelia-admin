@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async ({ url }) => {
     try {
@@ -10,15 +11,15 @@ export const load: PageServerLoad = async ({ url }) => {
         
         if (!dbConfig) {
             return {
-                error: 'Database configuration not found in Authelia config',
+                error: m.db_config_not_found(),
                 storageType: null,
                 history: []
             };
         }
-        
+
         if (dbConfig.type !== 'sqlite') {
             return {
-                error: `Database type "${dbConfig.type}" is not yet supported. Only SQLite is currently supported.`,
+                error: m.db_type_not_supported({ dbType: dbConfig.type }),
                 storageType: dbConfig.type,
                 history: []
             };
@@ -61,7 +62,7 @@ export const load: PageServerLoad = async ({ url }) => {
         
     } catch (error) {
         return {
-            error: `Failed to load TOTP history: ${(error as Error).message}`,
+            error: m.totp_history_load_failed({ error: (error as Error).message }),
             storageType: null,
             history: []
         };

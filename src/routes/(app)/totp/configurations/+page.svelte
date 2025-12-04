@@ -2,36 +2,37 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
-	
+	import * as m from '$lib/paraglide/messages';
+
 	export let data: PageData;
-	
+
 	let deletingId: number | null = null;
-	
+
 	function formatDate(dateString: string | null): string {
-		if (!dateString) return 'Never';
+		if (!dateString) return m.common_never();
 		const date = new Date(dateString);
 		return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 	}
-	
+
 	function getStatus(lastUsedAt: string | null): { text: string; class: string } {
 		if (!lastUsedAt) {
-			return { text: 'Unused', class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
+			return { text: m.totp_config_status_unused(), class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
 		}
 		const lastUsed = new Date(lastUsedAt);
 		const now = new Date();
 		const daysSinceUse = (now.getTime() - lastUsed.getTime()) / (1000 * 60 * 60 * 24);
-		
+
 		if (daysSinceUse < 7) {
-			return { text: 'Active', class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' };
+			return { text: m.totp_config_status_active(), class: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' };
 		} else if (daysSinceUse < 30) {
-			return { text: 'Recent', class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' };
+			return { text: m.totp_config_status_recent(), class: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' };
 		} else {
-			return { text: 'Inactive', class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
+			return { text: m.totp_config_status_inactive(), class: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' };
 		}
 	}
-	
+
 	function confirmDelete(id: number, username: string) {
-		if (confirm(`Are you sure you want to delete TOTP configuration for user "${username}"?`)) {
+		if (confirm(m.totp_config_delete_confirm({ username }))) {
 			deletingId = id;
 			return true;
 		}
@@ -42,32 +43,32 @@
 <div class="space-y-6">
 	{#if data.error}
 		<div class="bg-red-50 border border-red-200 rounded-lg p-4">
-			<p class="text-red-800 font-semibold">Error</p>
+			<p class="text-red-800 font-semibold">{m.common_error()}</p>
 			<p class="text-red-600">{data.error}</p>
 		</div>
 	{/if}
-	
+
 	{#if data.storageType && data.storageType !== 'sqlite'}
 		<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-			<p class="text-yellow-800 font-semibold">Storage Type Not Supported</p>
-			<p class="text-yellow-600">Current storage type: {data.storageType}. Only SQLite is currently supported.</p>
+			<p class="text-yellow-800 font-semibold">{m.storage_not_supported_title()}</p>
+			<p class="text-yellow-600">{m.storage_not_supported_text({ type: data.storageType })}</p>
 		</div>
 	{/if}
-	
+
 	<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
 			<h2 class="text-xl font-bold text-gray-900 dark:text-white">
-				TOTP Configurations
+				{m.totp_config_title()}
 			</h2>
 			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 				{#if data.dbPath}
-					Database: {data.dbPath}
+					{m.database_label({ path: data.dbPath })}
 				{:else}
-					Manage two-factor authentication configurations for users
+					{m.totp_config_subtitle()}
 				{/if}
 			</p>
 		</div>
-		
+
 		<div class="p-6">
 			{#if data.configurations && data.configurations.length > 0}
 				<!-- Table -->
@@ -76,28 +77,28 @@
 						<thead class="bg-gray-50 dark:bg-gray-700">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Username
+									{m.totp_config_table_username()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Issuer
+									{m.totp_config_table_issuer()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Algorithm
+									{m.totp_config_table_algorithm()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Digits / Period
+									{m.totp_config_table_digits_period()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Created
+									{m.totp_config_table_created()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Last Used
+									{m.totp_config_table_last_used()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Status
+									{m.totp_config_table_status()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Actions
+									{m.totp_config_table_actions()}
 								</th>
 							</tr>
 						</thead>
@@ -153,7 +154,7 @@
 												disabled={deletingId === config.id}
 												class="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
 											>
-												{deletingId === config.id ? 'Deleting...' : 'Delete'}
+												{deletingId === config.id ? m.totp_config_deleting() : m.totp_config_delete_button()}
 											</button>
 										</form>
 									</td>
@@ -164,7 +165,7 @@
 				</div>
 			{:else if !data.error}
 				<div class="text-center py-8 text-gray-500 dark:text-gray-400">
-					No TOTP configurations found in the database.
+					{m.totp_config_empty()}
 				</div>
 			{/if}
 		</div>

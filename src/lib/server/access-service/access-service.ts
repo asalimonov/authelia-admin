@@ -2,6 +2,7 @@ import type { IDirectoryService } from '../directory-service';
 import { Role, Permission, EntityType, RolePermissions } from './types';
 import type { AccessCheckResult, UserAccessContext } from './types';
 import type { IRoleMapper } from './role-mapper';
+import * as m from '$lib/paraglide/messages';
 
 export interface IAccessService {
     /**
@@ -89,7 +90,7 @@ export class AccessService implements IAccessService {
         if (!user) {
             return {
                 allowed: false,
-                reason: `User '${userId}' not found or not authenticated`,
+                reason: m.access_user_not_found({ userId }),
             };
         }
 
@@ -98,7 +99,7 @@ export class AccessService implements IAccessService {
         if (this.isUserDisabled(groups)) {
             return {
                 allowed: false,
-                reason: `User '${userId}' is disabled`,
+                reason: m.access_user_disabled({ userId }),
             };
         }
 
@@ -108,7 +109,7 @@ export class AccessService implements IAccessService {
         if (context.role === null) {
             return {
                 allowed: false,
-                reason: `User '${userId}' does not have a valid role to access this application`,
+                reason: m.access_no_valid_role({ userId }),
                 requiredRole: Role.PASSWORD_MANAGER,
             };
         }
@@ -117,7 +118,7 @@ export class AccessService implements IAccessService {
         if (!context.permissions.includes(permission)) {
             return {
                 allowed: false,
-                reason: `Permission '${permission}' not granted to role '${context.role}'`,
+                reason: m.access_permission_denied({ permission, role: context.role ?? '' }),
                 requiredRole: this.getMinimumRoleForPermission(permission),
             };
         }
@@ -170,7 +171,7 @@ export class AccessService implements IAccessService {
         if (!targetUserId) {
             return {
                 allowed: false,
-                reason: 'Target user ID required for password change',
+                reason: m.access_target_user_required_password(),
             };
         }
 
@@ -184,7 +185,7 @@ export class AccessService implements IAccessService {
         if (isTargetProtected) {
             return {
                 allowed: false,
-                reason: `Cannot change password for user '${targetUserId}' - user is in a protected group`,
+                reason: m.access_cannot_change_password_protected({ userId: targetUserId }),
                 requiredRole: Role.ADMIN,
             };
         }
@@ -204,7 +205,7 @@ export class AccessService implements IAccessService {
         if (entityType !== EntityType.GROUP || !entityId) {
             return {
                 allowed: false,
-                reason: 'Group ID required for membership operations',
+                reason: m.access_group_id_required(),
             };
         }
 
@@ -213,16 +214,17 @@ export class AccessService implements IAccessService {
         if (!group) {
             return {
                 allowed: false,
-                reason: `Group '${entityId}' not found`,
+                reason: m.group_not_found({ groupId: entityId }),
             };
         }
 
         if (this.isProtectedGroup(group.displayName)) {
-            const action =
-                permission === Permission.USER_ADD_TO_GROUP ? 'add users to' : 'remove users from';
+            const reason = permission === Permission.USER_ADD_TO_GROUP
+                ? m.access_cannot_add_to_protected_group({ groupName: group.displayName })
+                : m.access_cannot_remove_from_protected_group({ groupName: group.displayName });
             return {
                 allowed: false,
-                reason: `Cannot ${action} protected group '${group.displayName}'`,
+                reason,
                 requiredRole: Role.ADMIN,
             };
         }
@@ -238,7 +240,7 @@ export class AccessService implements IAccessService {
         if (!targetUserId) {
             return {
                 allowed: false,
-                reason: 'Target user ID required for user modification',
+                reason: m.access_target_user_required_modification(),
             };
         }
 
@@ -252,7 +254,7 @@ export class AccessService implements IAccessService {
         if (isTargetProtected) {
             return {
                 allowed: false,
-                reason: `Cannot modify user '${targetUserId}' - user is in a protected group`,
+                reason: m.access_cannot_modify_protected_user({ userId: targetUserId }),
                 requiredRole: Role.ADMIN,
             };
         }
