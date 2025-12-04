@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { base } from '$app/paths';
+	import * as m from '$lib/paraglide/messages';
 
 	export let data: PageData;
 </script>
@@ -8,7 +9,7 @@
 <div class="space-y-6">
 	{#if data.error}
 		<div class="bg-red-50 border border-red-200 rounded-lg p-4">
-			<p class="text-red-800 font-semibold">Error</p>
+			<p class="text-red-800 font-semibold">{m.common_error()}</p>
 			<p class="text-red-600">{data.error}</p>
 		</div>
 	{/if}
@@ -17,10 +18,10 @@
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 			<div>
 				<h2 class="text-xl font-bold text-gray-900 dark:text-white">
-					Users
+					{m.users_title()}
 				</h2>
 				<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-					User directory
+					{m.users_subtitle()}
 				</p>
 			</div>
 			{#if data.canCreateUsers}
@@ -31,7 +32,7 @@
 					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
 						<path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
 					</svg>
-					Add User
+					{m.users_add_button()}
 				</a>
 			{/if}
 		</div>
@@ -44,13 +45,13 @@
 						<thead class="bg-gray-50 dark:bg-gray-700">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									User ID
+									{m.users_table_userid()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Display Name
+									{m.users_table_displayname()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Email
+									{m.users_table_email()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
 
@@ -80,7 +81,7 @@
 											href="{base}/users/{user.id}"
 											class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors inline-block"
 										>
-											Details
+											{m.users_details_button()}
 										</a>
 									</td>
 								</tr>
@@ -90,11 +91,11 @@
 				</div>
 
 				<div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
-					Total users: {data.users.length}
+					{m.users_total({ count: data.users.length })}
 				</div>
 			{:else if !data.error}
 				<div class="text-center py-8 text-gray-500 dark:text-gray-400">
-					No users found in directory.
+					{m.users_empty()}
 				</div>
 			{/if}
 		</div>

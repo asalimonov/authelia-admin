@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.13.8",
+    "@inlang/paraglide-js": "^2.5.0",
     "cross-fetch": "^4.1.0",
     "graphql": "^16.11.0",
     "ldapts": "^8.0.9",

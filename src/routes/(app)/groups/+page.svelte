@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { formatDate } from '$lib/utils/validation';
+	import * as m from '$lib/paraglide/messages';
 
 	export let data: PageData;
 </script>
@@ -8,7 +9,7 @@
 <div class="space-y-6">
 	{#if data.error}
 		<div class="bg-red-50 border border-red-200 rounded-lg p-4">
-			<p class="text-red-800 font-semibold">Error</p>
+			<p class="text-red-800 font-semibold">{m.common_error()}</p>
 			<p class="text-red-600">{data.error}</p>
 		</div>
 	{/if}
@@ -16,10 +17,10 @@
 	<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
 			<h2 class="text-xl font-bold text-gray-900 dark:text-white">
-				Groups
+				{m.groups_title()}
 			</h2>
 			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-				Groups from directory
+				{m.groups_subtitle()}
 			</p>
 		</div>
 
@@ -31,13 +32,13 @@
 						<thead class="bg-gray-50 dark:bg-gray-700">
 							<tr>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Group Name
+									{m.groups_table_name()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Members
+									{m.groups_table_members()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Creation Date
+									{m.groups_table_creation_date()}
 								</th>
 							</tr>
 						</thead>
@@ -50,10 +51,14 @@
 									<td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
 										{#if group.members && group.members.length > 0}
 											<div class="space-y-1">
-												<div class="font-medium">{group.members.length} member{group.members.length !== 1 ? 's' : ''}</div>
+												<div class="font-medium">
+													{group.members.length === 1
+														? m.groups_member_count({ count: group.members.length })
+														: m.groups_member_count_plural({ count: group.members.length })}
+												</div>
 												<details class="cursor-pointer">
 													<summary class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-														Show members
+														{m.groups_show_members()}
 													</summary>
 													<div class="mt-2 flex flex-wrap gap-1">
 														{#each group.members as member}
@@ -65,7 +70,7 @@
 												</details>
 											</div>
 										{:else}
-											<span class="text-gray-500">No members</span>
+											<span class="text-gray-500">{m.groups_no_members()}</span>
 										{/if}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
@@ -78,11 +83,11 @@
 				</div>
 
 				<div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
-					Total groups: {data.groups.length}
+					{m.groups_total({ count: data.groups.length })}
 				</div>
 			{:else if !data.error}
 				<div class="text-center py-8 text-gray-500 dark:text-gray-400">
-					No groups found in directory.
+					{m.groups_empty()}
 				</div>
 			{/if}
 		</div>

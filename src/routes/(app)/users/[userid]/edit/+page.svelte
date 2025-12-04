@@ -2,6 +2,7 @@
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { base } from '$app/paths';
+	import * as m from '$lib/paraglide/messages';
 
 	export let data: PageData;
 	export let form: ActionData;
@@ -34,32 +35,32 @@
 
 <div class="space-y-6">
 	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit User</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{m.user_edit_title()}</h1>
 		<a
 			href="{base}/users/{data.user?.id}"
 			class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors inline-block text-center"
 		>
-			Back to User
+			{m.user_edit_back()}
 		</a>
 	</div>
 
 	{#if data.error}
 		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-			<p class="text-red-800 dark:text-red-200 font-semibold">Access Denied</p>
+			<p class="text-red-800 dark:text-red-200 font-semibold">{m.common_access_denied()}</p>
 			<p class="text-red-600 dark:text-red-300">{data.error}</p>
 		</div>
 	{/if}
 
 	{#if form?.error}
 		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-			<p class="text-red-800 dark:text-red-200 font-semibold">Error</p>
+			<p class="text-red-800 dark:text-red-200 font-semibold">{m.common_error()}</p>
 			<p class="text-red-600 dark:text-red-300">{form.error}</p>
 		</div>
 	{/if}
 
 	{#if form?.success}
 		<div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-			<p class="text-green-800 dark:text-green-200 font-semibold">Success</p>
+			<p class="text-green-800 dark:text-green-200 font-semibold">{m.common_success()}</p>
 			<p class="text-green-600 dark:text-green-300">{form.message}</p>
 		</div>
 	{/if}
@@ -68,9 +69,9 @@
 		<!-- User Details Form -->
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-xl font-bold text-gray-900 dark:text-white">User Details</h2>
+				<h2 class="text-xl font-bold text-gray-900 dark:text-white">{m.user_edit_section_title()}</h2>
 				<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-					Update the user's account information.
+					{m.user_edit_section_subtitle()}
 				</p>
 			</div>
 
@@ -94,7 +95,7 @@
 								for="userId"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								User ID
+								{m.user_edit_userid_label()}
 							</label>
 							<input
 								id="userId"
@@ -104,7 +105,7 @@
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
 							/>
 							<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-								User ID cannot be changed.
+								{m.user_edit_userid_readonly()}
 							</p>
 						</div>
 
@@ -113,7 +114,7 @@
 								for="email"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								Email
+								{m.user_edit_email_label()}
 							</label>
 							<input
 								id="email"
@@ -121,7 +122,7 @@
 								type="email"
 								bind:value={email}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="user@example.com"
+								placeholder={m.user_edit_email_placeholder()}
 							/>
 						</div>
 					</div>
@@ -132,7 +133,7 @@
 							for="displayName"
 							class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 						>
-							Display Name
+							{m.user_edit_displayname_label()}
 						</label>
 						<input
 							id="displayName"
@@ -140,7 +141,7 @@
 							type="text"
 							bind:value={displayName}
 							class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-							placeholder="John Doe"
+							placeholder={m.user_edit_displayname_placeholder()}
 						/>
 					</div>
 
@@ -151,7 +152,7 @@
 								for="firstName"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								First Name
+								{m.user_edit_firstname_label()}
 							</label>
 							<input
 								id="firstName"
@@ -159,7 +160,7 @@
 								type="text"
 								bind:value={firstName}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="John"
+								placeholder={m.user_edit_firstname_placeholder()}
 							/>
 						</div>
 
@@ -168,7 +169,7 @@
 								for="lastName"
 								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 							>
-								Last Name
+								{m.user_edit_lastname_label()}
 							</label>
 							<input
 								id="lastName"
@@ -176,7 +177,7 @@
 								type="text"
 								bind:value={lastName}
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-								placeholder="Doe"
+								placeholder={m.user_edit_lastname_placeholder()}
 							/>
 						</div>
 					</div>
@@ -188,13 +189,13 @@
 							disabled={isSubmitting}
 							class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
 						>
-							{isSubmitting ? 'Saving...' : 'Save Changes'}
+							{isSubmitting ? m.user_edit_button_saving() : m.user_edit_button_save()}
 						</button>
 						<a
 							href="{base}/users/{data.user.id}"
 							class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-center font-medium"
 						>
-							Cancel
+							{m.user_edit_button_cancel()}
 						</a>
 					</div>
 				</form>
@@ -204,10 +205,10 @@
 		<!-- Group Membership -->
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 			<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-xl font-bold text-gray-900 dark:text-white">Group Membership</h2>
+				<h2 class="text-xl font-bold text-gray-900 dark:text-white">{m.user_edit_groups_title()}</h2>
 				{#if data.canManageGroups}
 					<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-						Click on a group to add or remove the user.
+						{m.user_edit_groups_hint()}
 					</p>
 				{/if}
 			</div>
@@ -216,7 +217,7 @@
 				<!-- Current Groups -->
 				<div>
 					<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-						Current Groups
+						{m.user_edit_groups_current_title()}
 					</h3>
 					{#if data.user.groups && data.user.groups.length > 0}
 						<div class="flex flex-wrap gap-2">
@@ -239,7 +240,7 @@
 											type="submit"
 											disabled={isSubmittingMembership}
 											class="group px-3 py-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-lg hover:bg-red-100 hover:text-red-800 dark:hover:bg-red-900 dark:hover:text-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-											title="Click to remove from group"
+											title={m.user_edit_groups_remove_hint()}
 										>
 											<span>{group.displayName}</span>
 											<svg class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,11 +256,13 @@
 							{/each}
 						</div>
 						<p class="mt-3 text-sm text-gray-600 dark:text-gray-400">
-							Member of {data.user.groups.length} group{data.user.groups.length !== 1 ? 's' : ''}
+							{data.user.groups.length === 1
+								? m.user_detail_groups_count({ count: data.user.groups.length })
+								: m.user_detail_groups_count_plural({ count: data.user.groups.length })}
 						</p>
 					{:else}
 						<p class="text-gray-600 dark:text-gray-400">
-							This user is not a member of any groups.
+							{m.user_detail_no_groups()}
 						</p>
 					{/if}
 				</div>
@@ -268,7 +271,7 @@
 				{#if data.canManageGroups && availableGroups.length > 0}
 					<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
 						<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-							Available Groups
+							{m.user_edit_groups_available_title()}
 						</h3>
 						<div class="flex flex-wrap gap-2">
 							{#each availableGroups as group}
@@ -289,7 +292,7 @@
 										type="submit"
 										disabled={isSubmittingMembership}
 										class="group px-3 py-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-lg hover:bg-green-100 hover:text-green-800 dark:hover:bg-green-900 dark:hover:text-green-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-										title="Click to add to group"
+										title={m.user_edit_groups_add_hint()}
 									>
 										<svg class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -305,7 +308,7 @@
 				{#if data.canManageGroups && availableGroups.length === 0 && data.user.groups && data.user.groups.length > 0}
 					<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
 						<p class="text-sm text-gray-500 dark:text-gray-400">
-							This user is already a member of all available groups.
+							{m.user_edit_groups_all_assigned()}
 						</p>
 					</div>
 				{/if}
@@ -313,7 +316,7 @@
 				{#if !data.canManageGroups}
 					<div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
 						<p class="text-sm text-yellow-800 dark:text-yellow-200">
-							You do not have permission to manage group membership.
+							{m.user_edit_groups_no_permission()}
 						</p>
 					</div>
 				{/if}
@@ -322,7 +325,7 @@
 	{:else}
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
 			<p class="text-gray-600 dark:text-gray-400">
-				You do not have permission to edit this user or the user was not found.
+				{m.user_edit_no_permission()}
 			</p>
 		</div>
 	{/if}

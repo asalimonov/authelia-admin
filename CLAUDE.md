@@ -11,6 +11,7 @@ Authelia Admin Control Panel - A web-based administration interface for managing
 - **Framework**: SvelteKit with Svelte 5 (new runes syntax)
 - **Language**: TypeScript with strict mode enabled
 - **Styling**: Tailwind CSS v4 with custom theme
+- **i18n**: Inlang Paraglide JS v2 (English, Russian)
 - **Database**: SQLite (via sqlite3 package)
 - **LDAP**: ldapts library for LDAP operations
 - **Build Tool**: Vite
@@ -231,6 +232,88 @@ directory:
 - Thread-safe bearer token management with automatic refresh
 - Configuration supports both YAML and environment variables (AAD_ prefix)
 
+### Internationalization (i18n)
+
+**MANDATORY**: All user-facing strings must be internationalized. This applies to both frontend (Svelte components) and backend (TypeScript server code).
+
+**Library**: [Inlang Paraglide JS v2](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) (`@inlang/paraglide-js`)
+
+**Supported Languages**:
+- English (en) - default/base locale
+- Russian (ru)
+
+**Structure:**
+```
+messages/
+├── en.json          # English translations (source of truth)
+└── ru.json          # Russian translations
+src/lib/paraglide/
+├── messages.js      # Auto-generated message functions
+└── runtime.js       # Runtime utilities
+```
+
+**Configuration** (`project.inlang/settings.json`):
+- Base locale: `en`
+- Locale strategy: `['cookie', 'baseLocale']` - uses cookie first, falls back to English
+
+**Usage in Code:**
+
+```typescript
+// Import messages namespace
+import * as m from '$lib/paraglide/messages';
+
+// Simple message
+const error = m.auth_required();
+
+// Message with parameters
+const error = m.user_not_found({ userId: 'john' });
+
+// In SvelteKit form actions with fail()
+return fail(400, { error: m.validation_email_invalid() });
+
+// In hooks with error()
+import { error } from '@sveltejs/kit';
+error(403, m.auth_required());
+```
+
+**Adding New Messages:**
+
+1. Add the key to `messages/en.json`:
+   ```json
+   {
+     "my_new_message": "This is a new message",
+     "my_message_with_param": "Hello, {name}!"
+   }
+   ```
+
+2. Add the same key to `messages/ru.json` with Russian translation:
+   ```json
+   {
+     "my_new_message": "Это новое сообщение",
+     "my_message_with_param": "Привет, {name}!"
+   }
+   ```
+
+3. Run `npm run build` or `npm run dev` to regenerate `src/lib/paraglide/messages.js`
+
+4. Use in code:
+   ```typescript
+   import * as m from '$lib/paraglide/messages';
+   m.my_new_message();
+   m.my_message_with_param({ name: 'World' });
+   ```
+
+**Message Key Naming Conventions:**
+- Use snake_case for keys
+- Prefix with feature area: `user_`, `group_`, `totp_`, `banned_`, `auth_`, `validation_`, `access_`, `common_`, `db_`
+- Be descriptive: `user_password_change_success`, `validation_email_invalid`
+- Don't use `server_` prefix - messages are shared between frontend and backend
+
+**What NOT to Internationalize:**
+- Console log messages (debug/error logging)
+- Technical error messages not shown to users
+- Internal identifiers
+
 ### Security Measures
 - CSRF protection via `trustedOrigins`
 - Session validation on each request
@@ -315,6 +398,7 @@ npm rebuild sqlite3 --build-from-source
 
 - TypeScript strict mode is enabled - ensure all types are properly defined
 - The project uses Svelte 5 with new runes syntax (`$props()`, `$state()`)
+- **All user-facing strings must be internationalized** - use `import * as m from '$lib/paraglide/messages'` and add translations to both `messages/en.json` and `messages/ru.json`
 - Always use `getDirectoryServiceAsync()` to get the directory service instance
 - Database connections must be properly closed after operations
 - All user inputs must be validated server-side

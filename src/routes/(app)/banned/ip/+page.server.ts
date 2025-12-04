@@ -2,6 +2,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
 import { fail } from '@sveltejs/kit';
 import { sanitizeString } from '$lib/utils/validation';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -9,15 +10,15 @@ export const load: PageServerLoad = async () => {
         
         if (!dbConfig) {
             return {
-                error: 'Database configuration not found in Authelia config',
+                error: m.db_config_not_found(),
                 storageType: null,
                 bannedIPs: []
             };
         }
-        
+
         if (dbConfig.type !== 'sqlite') {
             return {
-                error: `Database type "${dbConfig.type}" is not yet supported. Only SQLite is currently supported.`,
+                error: m.db_type_not_supported({ dbType: dbConfig.type }),
                 storageType: dbConfig.type,
                 bannedIPs: []
             };
@@ -40,7 +41,7 @@ export const load: PageServerLoad = async () => {
         
     } catch (error) {
         return {
-            error: `Failed to load banned IPs: ${(error as Error).message}`,
+            error: m.banned_ips_load_failed({ error: (error as Error).message }),
             storageType: null,
             bannedIPs: []
         };
@@ -58,7 +59,7 @@ export const actions: Actions = {
             const isPermanent = formData.get('permanent') === 'true';
             
             if (!ip) {
-                return fail(400, { error: 'IP address is required' });
+                return fail(400, { error: m.banned_ip_required() });
             }
             
             // Basic IP validation (IPv4 or IPv6)
@@ -66,17 +67,17 @@ export const actions: Actions = {
             const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
             
             if (!ipv4Regex.test(ip) && !ipv6Regex.test(ip)) {
-                return fail(400, { error: 'Invalid IP address format' });
+                return fail(400, { error: m.banned_ip_invalid_format() });
             }
             
             const dbConfig = await getDatabaseConfig();
             
             if (!dbConfig) {
-                return fail(500, { error: 'Database configuration not found' });
+                return fail(500, { error: m.db_config_not_found() });
             }
             
             if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: `Database type "${dbConfig.type}" is not yet supported` });
+                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
             }
             
             const adapter = await createDatabaseAdapter(dbConfig);
@@ -86,7 +87,7 @@ export const actions: Actions = {
                 if (!isPermanent && expires) {
                     expiresDate = new Date(expires);
                     if (isNaN(expiresDate.getTime())) {
-                        return fail(400, { error: 'Invalid expiration date' });
+                        return fail(400, { error: m.common_invalid_expiration_date() });
                     }
                 }
                 
@@ -94,7 +95,7 @@ export const actions: Actions = {
                 const success = await adapter.createBannedIP(ip, expiresDate, source, sanitizedReason);
                 
                 if (!success) {
-                    return fail(500, { error: `Failed to ban IP "${ip}"` });
+                    return fail(500, { error: m.banned_ip_ban_failed({ ip }) });
                 }
                 
                 return { success: true, message: `IP "${ip}" has been banned` };
@@ -104,7 +105,7 @@ export const actions: Actions = {
             
         } catch (error) {
             console.error('Error creating banned IP:', error);
-            return fail(500, { error: `Failed to ban IP: ${(error as Error).message}` });
+            return fail(500, { error: m.banned_ip_ban_error({ error: (error as Error).message }) });
         }
     },
     
@@ -115,17 +116,17 @@ export const actions: Actions = {
             const ip = formData.get('ip')?.toString();
             
             if (!id) {
-                return fail(400, { error: 'Ban ID is required' });
+                return fail(400, { error: m.common_ban_id_required() });
             }
             
             const dbConfig = await getDatabaseConfig();
             
             if (!dbConfig) {
-                return fail(500, { error: 'Database configuration not found' });
+                return fail(500, { error: m.db_config_not_found() });
             }
             
             if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: `Database type "${dbConfig.type}" is not yet supported` });
+                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
             }
             
             const adapter = await createDatabaseAdapter(dbConfig);
@@ -134,7 +135,7 @@ export const actions: Actions = {
                 const success = await adapter.deleteBannedIP(parseInt(id));
                 
                 if (!success) {
-                    return fail(404, { error: `Banned IP record not found` });
+                    return fail(404, { error: m.banned_ip_not_found() });
                 }
                 
                 return { success: true, message: `Ban for IP "${ip}" has been deleted` };
@@ -144,7 +145,7 @@ export const actions: Actions = {
             
         } catch (error) {
             console.error('Error deleting banned IP:', error);
-            return fail(500, { error: `Failed to delete banned IP: ${(error as Error).message}` });
+            return fail(500, { error: m.banned_ip_delete_error({ error: (error as Error).message }) });
         }
     }
 };

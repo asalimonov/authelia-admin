@@ -5,6 +5,7 @@ import { isValidEmail, sanitizeString } from '$lib/utils/validation';
 import { getDirectoryServiceAsync, type UpdateUserInput } from '$lib/server/directory-service';
 import { getAccessService, Permission, EntityType, type DirectoryServiceType } from '$lib/server/access-service';
 import { getConfigAsync } from '$lib/server/config';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     const { userid } = params;
@@ -28,7 +29,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
         if (!canEditUser) {
             return {
-                error: 'You do not have permission to edit this user',
+                error: m.user_edit_no_permission(),
                 user: null,
                 allGroups: [],
                 canManageGroups: false
@@ -39,7 +40,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
         if (!user) {
             return {
-                error: `User "${userid}" not found`,
+                error: m.user_not_found({ userId: userid }),
                 user: null,
                 allGroups: [],
                 canManageGroups: false
@@ -68,7 +69,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
     } catch (error) {
         return {
-            error: `Failed to load user: ${(error as Error).message}`,
+            error: m.user_load_failed({ error: (error as Error).message }),
             user: null,
             allGroups: [],
             canManageGroups: false
@@ -98,7 +99,7 @@ export const actions: Actions = {
             );
 
             if (!canEditUser) {
-                return fail(403, { error: 'You do not have permission to edit this user' });
+                return fail(403, { error: m.user_edit_no_permission() });
             }
 
             const formData = await request.formData();
@@ -109,7 +110,7 @@ export const actions: Actions = {
 
             // Validate email
             if (email && !isValidEmail(email)) {
-                return fail(400, { error: 'Invalid email format' });
+                return fail(400, { error: m.validation_email_invalid() });
             }
 
             // Build update input
@@ -136,7 +137,7 @@ export const actions: Actions = {
             const result = await directoryService.updateUser(updateInput);
 
             if (!result.success) {
-                return fail(500, { error: result.error || 'Failed to update user details' });
+                return fail(500, { error: result.error || m.user_update_failed() });
             }
 
             // Redirect to user detail page after successful update
@@ -149,7 +150,7 @@ export const actions: Actions = {
             }
 
             console.error('Error updating user details:', error);
-            return fail(500, { error: `Failed to update user: ${(error as Error).message}` });
+            return fail(500, { error: m.user_update_error({ error: (error as Error).message }) });
         }
     },
 
@@ -173,31 +174,31 @@ export const actions: Actions = {
             );
 
             if (!canAddToGroup) {
-                return fail(403, { error: 'You do not have permission to manage group membership' });
+                return fail(403, { error: m.user_group_manage_no_permission() });
             }
 
             const formData = await request.formData();
             const groupId = formData.get('groupId')?.toString();
 
             if (!groupId) {
-                return fail(400, { error: 'Group ID is required' });
+                return fail(400, { error: m.user_group_id_required() });
             }
 
             const result = await directoryService.addUserToGroup(userid, groupId);
 
             if (!result.success) {
-                return fail(500, { error: result.error || 'Failed to add user to group' });
+                return fail(500, { error: result.error || m.user_add_to_group_failed() });
             }
 
             return {
                 success: true,
-                message: 'User added to group successfully',
+                message: m.user_add_to_group_success(),
                 type: 'membership'
             };
 
         } catch (error) {
             console.error('Error adding user to group:', error);
-            return fail(500, { error: `Failed to add user to group: ${(error as Error).message}` });
+            return fail(500, { error: m.user_add_to_group_error({ error: (error as Error).message }) });
         }
     },
 
@@ -221,31 +222,31 @@ export const actions: Actions = {
             );
 
             if (!canRemoveFromGroup) {
-                return fail(403, { error: 'You do not have permission to manage group membership' });
+                return fail(403, { error: m.user_group_manage_no_permission() });
             }
 
             const formData = await request.formData();
             const groupId = formData.get('groupId')?.toString();
 
             if (!groupId) {
-                return fail(400, { error: 'Group ID is required' });
+                return fail(400, { error: m.user_group_id_required() });
             }
 
             const result = await directoryService.removeUserFromGroup(userid, groupId);
 
             if (!result.success) {
-                return fail(500, { error: result.error || 'Failed to remove user from group' });
+                return fail(500, { error: result.error || m.user_remove_from_group_failed() });
             }
 
             return {
                 success: true,
-                message: 'User removed from group successfully',
+                message: m.user_remove_from_group_success(),
                 type: 'membership'
             };
 
         } catch (error) {
             console.error('Error removing user from group:', error);
-            return fail(500, { error: `Failed to remove user from group: ${(error as Error).message}` });
+            return fail(500, { error: m.user_remove_from_group_error({ error: (error as Error).message }) });
         }
     }
 };

@@ -1,6 +1,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
 import { fail } from '@sveltejs/kit';
+import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async () => {
     try {
@@ -8,15 +9,15 @@ export const load: PageServerLoad = async () => {
         
         if (!dbConfig) {
             return {
-                error: 'Database configuration not found in Authelia config',
+                error: m.db_config_not_found(),
                 storageType: null,
                 configurations: []
             };
         }
-        
+
         if (dbConfig.type !== 'sqlite') {
             return {
-                error: `Database type "${dbConfig.type}" is not yet supported. Only SQLite is currently supported.`,
+                error: m.db_type_not_supported({ dbType: dbConfig.type }),
                 storageType: dbConfig.type,
                 configurations: []
             };
@@ -44,7 +45,7 @@ export const load: PageServerLoad = async () => {
         
     } catch (error) {
         return {
-            error: `Failed to load TOTP configurations: ${(error as Error).message}`,
+            error: m.totp_configs_load_failed({ error: (error as Error).message }),
             storageType: null,
             configurations: []
         };
@@ -57,38 +58,38 @@ export const actions: Actions = {
             const formData = await request.formData();
             const id = formData.get('id')?.toString();
             const username = formData.get('username')?.toString();
-            
+
             if (!id) {
-                return fail(400, { error: 'Configuration ID is required' });
+                return fail(400, { error: m.totp_config_id_required() });
             }
-            
+
             const dbConfig = await getDatabaseConfig();
-            
+
             if (!dbConfig) {
-                return fail(500, { error: 'Database configuration not found' });
+                return fail(500, { error: m.db_config_not_found() });
             }
-            
+
             if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: `Database type "${dbConfig.type}" is not yet supported` });
+                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
             }
-            
+
             const adapter = await createDatabaseAdapter(dbConfig);
-            
+
             try {
                 const success = await adapter.deleteTOTPConfiguration(parseInt(id));
-                
+
                 if (!success) {
-                    return fail(404, { error: `TOTP configuration not found` });
+                    return fail(404, { error: m.totp_config_not_found() });
                 }
-                
-                return { success: true, message: `TOTP configuration for user "${username}" has been deleted` };
+
+                return { success: true, message: m.totp_config_delete_success({ username: username || '' }) };
             } finally {
                 await adapter.close();
             }
-            
+
         } catch (error) {
             console.error('Error deleting TOTP configuration:', error);
-            return fail(500, { error: `Failed to delete TOTP configuration: ${(error as Error).message}` });
+            return fail(500, { error: m.totp_config_delete_error({ error: (error as Error).message }) });
         }
     }
 };
