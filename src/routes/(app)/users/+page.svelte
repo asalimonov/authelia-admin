@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { base } from '$app/paths';
-	import { formatDate } from '$lib/utils/validation';
 
 	export let data: PageData;
 </script>
@@ -13,19 +12,15 @@
 			<p class="text-red-600">{data.error}</p>
 		</div>
 	{/if}
-	
+
 	<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 			<div>
 				<h2 class="text-xl font-bold text-gray-900 dark:text-white">
-					LDAP Users
+					Users
 				</h2>
 				<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-					{#if data.ldapServer}
-						Server: {data.ldapServer}
-					{:else}
-						User directory from LDAP server
-					{/if}
+					User directory
 				</p>
 			</div>
 			{#if data.canCreateUsers}
@@ -40,7 +35,7 @@
 				</a>
 			{/if}
 		</div>
-		
+
 		<div class="p-6">
 			{#if data.users && data.users.length > 0}
 				<!-- Table -->
@@ -58,16 +53,7 @@
 									Email
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									First Name
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Last Name
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									Creation Date
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									
+
 								</th>
 							</tr>
 						</thead>
@@ -75,32 +61,23 @@
 							{#each data.users as user}
 								<tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
 									<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-										{user.uid}
+										{user.id}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
 										{user.displayName || '-'}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-										{#if user.mail}
-											<a href="mailto:{user.mail}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-												{user.mail}
+										{#if user.email}
+											<a href="mailto:{user.email}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+												{user.email}
 											</a>
 										{:else}
 											-
 										{/if}
 									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-										{user.givenName || '-'}
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-										{user.sn || '-'}
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-										{formatDate(user.createTimestamp)}
-									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm">
 										<a
-											href="{base}/users/{user.uid}"
+											href="{base}/users/{user.id}"
 											class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors inline-block"
 										>
 											Details
@@ -111,13 +88,13 @@
 						</tbody>
 					</table>
 				</div>
-				
+
 				<div class="mt-4 text-sm text-gray-600 dark:text-gray-400">
 					Total users: {data.users.length}
 				</div>
 			{:else if !data.error}
 				<div class="text-center py-8 text-gray-500 dark:text-gray-400">
-					No users found in LDAP directory.
+					No users found in directory.
 				</div>
 			{/if}
 		</div>

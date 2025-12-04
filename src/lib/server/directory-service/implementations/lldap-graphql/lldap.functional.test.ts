@@ -10,7 +10,7 @@
  * - Run `make docker-compose-run` to start the test environment
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { LLDAPGraphQLService } from './index';
 import { LLDAPGraphQLClient } from './client';
 import type { LLDAPGraphQLConfig } from '../../config';
@@ -272,6 +272,118 @@ describe('LLDAPGraphQLService Functional Tests', () => {
 
 			expect(schema).toBeDefined();
 			expect(Array.isArray(schema.attributes)).toBe(true);
+		});
+	});
+
+	describe('Password Operations', () => {
+		let testUserId: string;
+
+		beforeAll(async () => {
+			// Create a test user for password change tests
+			testUserId = `password_test_${Date.now()}`;
+			const user = await service.createUser({
+				id: testUserId,
+				email: `${testUserId}@example.com`,
+				displayName: 'Password Test User'
+			});
+			expect(user.id).toBe(testUserId);
+		});
+
+		afterAll(async () => {
+			// Restore token cache for admin service before cleanup
+			LLDAPGraphQLClient.clearTokenCache();
+			// Cleanup - delete test user
+			await service.deleteUser(testUserId);
+		});
+
+		afterEach(() => {
+			// Restore token cache after each test that might clear it
+			// This ensures subsequent tests can use the admin service
+			LLDAPGraphQLClient.clearTokenCache();
+		});
+
+		it('should change password for another user', async () => {
+			const newPassword = 'NewSecurePassword123!';
+			const result = await service.changePassword(testUserId, newPassword);
+
+			expect(result.success).toBe(true);
+			expect(result.error).toBeUndefined();
+		});
+
+		it('should verify password was changed by authenticating with new password', async () => {
+			const newPassword = 'AnotherPassword456!';
+
+			// First change the password
+			const changeResult = await service.changePassword(testUserId, newPassword);
+			expect(changeResult.success).toBe(true);
+
+			// Verify by creating a new service instance with the test user's credentials
+			// and attempting to connect
+			const testUserConfig: LLDAPGraphQLConfig = {
+				type: 'lldap-graphql',
+				endpoint: testConfig.endpoint,
+				user: testUserId,
+				password: newPassword
+			};
+
+			const testUserService = new LLDAPGraphQLService(testUserConfig);
+			const connectionResult = await testUserService.testConnection();
+
+			expect(connectionResult.success).toBe(true);
+		});
+
+		it('should fail to change password for non-existent user', async () => {
+			const result = await service.changePassword('nonexistent_user_xyz_12345', 'SomePassword123!');
+
+			expect(result.success).toBe(false);
+			expect(result.error).toBeDefined();
+		});
+
+		it('should change password multiple times successfully', async () => {
+			// Change password first time
+			const firstPassword = 'FirstPassword123!';
+			const firstResult = await service.changePassword(testUserId, firstPassword);
+			expect(firstResult.success).toBe(true);
+
+			// Clear token cache to force re-authentication with first password
+			LLDAPGraphQLClient.clearTokenCache();
+
+			// Verify first password works
+			const firstConfig: LLDAPGraphQLConfig = {
+				type: 'lldap-graphql',
+				endpoint: testConfig.endpoint,
+				user: testUserId,
+				password: firstPassword
+			};
+			const firstService = new LLDAPGraphQLService(firstConfig);
+			const firstConnection = await firstService.testConnection();
+			expect(firstConnection.success).toBe(true);
+
+			// Change password second time (need admin auth for this)
+			LLDAPGraphQLClient.clearTokenCache();
+			const secondPassword = 'SecondPassword456!';
+			const secondResult = await service.changePassword(testUserId, secondPassword);
+			expect(secondResult.success).toBe(true);
+
+			// Clear token cache to force re-authentication with new password
+			LLDAPGraphQLClient.clearTokenCache();
+
+			// Verify second password works
+			const secondConfig: LLDAPGraphQLConfig = {
+				type: 'lldap-graphql',
+				endpoint: testConfig.endpoint,
+				user: testUserId,
+				password: secondPassword
+			};
+			const secondService = new LLDAPGraphQLService(secondConfig);
+			const secondConnection = await secondService.testConnection();
+			expect(secondConnection.success).toBe(true);
+
+			// Clear token cache and verify first password no longer works
+			LLDAPGraphQLClient.clearTokenCache();
+			const oldPasswordService = new LLDAPGraphQLService(firstConfig);
+			const oldPasswordConnection = await oldPasswordService.testConnection();
+			expect(oldPasswordConnection.success).toBe(false);
 		});
 	});
 

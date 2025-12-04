@@ -30,6 +30,7 @@ export { LLDAPGraphQLService, LLDAPGraphQLClient } from './implementations/lldap
 
 // Singleton management
 import type { IDirectoryService } from './types';
+import type { LLDAPGraphQLConfig } from './config';
 import { getConfigAsync } from '../config';
 import { DirectoryServiceFactory } from './factory';
 
@@ -53,7 +54,15 @@ export async function initDirectoryService(): Promise<IDirectoryService> {
 	initializationPromise = (async () => {
 		try {
 			const appConfig = await getConfigAsync();
-			directoryServiceInstance = DirectoryServiceFactory.create(appConfig.directory_service);
+
+			// Transform nested directory config to flat LLDAPGraphQLConfig
+			const directoryConfig = appConfig.directory;
+			const serviceConfig: LLDAPGraphQLConfig = {
+				type: directoryConfig.type,
+				...directoryConfig['lldap-graphql']
+			};
+
+			directoryServiceInstance = DirectoryServiceFactory.create(serviceConfig);
 			return directoryServiceInstance;
 		} finally {
 			initializationPromise = null;

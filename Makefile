@@ -17,25 +17,28 @@ network: ## Create Docker network if it doesn't exist
 		docker network create --subnet=$(DOCKER_NETWORK_CIDR) $(DOCKER_NETWORK_NAME)
 	@echo "Docker network '$(DOCKER_NETWORK_NAME)' is ready"
 
-.PHONY: build
-build: ## Build Docker image
-	docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
+.PHONY: pre-build
+pre-build: ## Build CI image with all dependencies for linting/testing/building
+	@if [ ! -f package-lock.json ]; then \
+		echo "package-lock.json not found, generating..."; \
+		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
+	fi
+	docker build --network=host -f ci.Dockerfile -t $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) .
 
+.PHONY: build
+build: ## Build production Docker image (requires pre-build)
+	@if ! docker image inspect $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) >/dev/null 2>&1; then \
+		echo "CI image not found. Running pre-build first..."; \
+		$(MAKE) pre-build; \
+	fi
+	docker build --network=host -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
 
 .PHONY: build-dev
 build-dev: ## Build development Docker image
-	docker build -f dev.Dockerfile -t $(DOCKER_DEV_IMAGE_NAME):$(DOCKER_DEV_IMAGE_TAG) .
-
-.PHONY: pre-build
-pre-build: ## Build CI image with pre-installed dependencies (for linting/testing)
-	@if [ ! -f package-lock.json ]; then \
-		echo "package-lock.json not found, generating..."; \
-		docker run --rm -v "$(PWD)":/app -w /app -u "$$(id -u):$$(id -g)" node:25-alpine npm install --package-lock-only; \
-	fi
-	docker build --target builder -t $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) .
+	docker build --network=host -f dev.Dockerfile -t $(DOCKER_DEV_IMAGE_NAME):$(DOCKER_DEV_IMAGE_TAG) .
 
 .PHONY: run
-run: network ## Run Docker container
+run: network ## Run production Docker container
 	docker run --rm --network $(DOCKER_NETWORK_NAME) \
 		-v ./test-configs/config.yml:/opt/authelia-admin/config.yml:ro \
 		-v ./test-configs/authelia:/config \
@@ -45,13 +48,13 @@ run: network ## Run Docker container
 		-p $(DOCKER_PORT):9093 \
 		$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)
 
-
 .PHONY: run-dev
-run-dev: network build-dev ## Run development Docker container
+run-dev: network build-dev ## Run development Docker container with hot-reload
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	docker run --rm -it \
+	docker run --rm -i \
 		-v $(PWD):/app \
+		-v /app/node_modules \
 		-v $(PWD)/test-configs/config.yml:/opt/authelia-admin/config.yml:ro \
 		--network $(DOCKER_NETWORK_NAME) \
 		-v ./test-configs/authelia:/config \
@@ -88,8 +91,8 @@ test-lint: ## Run ESLint on TypeScript code (requires pre-build)
 		-v $(PWD):/app:ro -v /app/node_modules \
 		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm run lint
 
-.PHONY: docker-compose-run
-docker-compose-run: network ## Run docker compose with external network
+.PHONY: run-docker-compose
+run-docker-compose: network ## Run docker compose with network dependencies within external network
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
 	(sleep 5 && docker compose exec -T lldap /bootstrap/bootstrap.sh) &

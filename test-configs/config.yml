@@ -10,9 +10,15 @@ authelia:
   # Minimum authentication level required (1=password, 2=2FA)
   min_auth_level: 1
 
-# Directory service configuration (LLDAP)
-directory_service:
+# Directory service configuration
+# Each field can be overridden by environment variables with AAD_ prefix
+directory:
+  # Type of directory service (currently only lldap-graphql is supported)
   type: lldap-graphql
-  endpoint: http://lldap:17170/api/graphql
-  user: admin
-  password: admin1234
+  # Configuration for LLDAP GraphQL backend
+  lldap-graphql:
+    endpoint: http://lldap:17170/api/graphql
+    user: admin
+    password: admin1234
+    ldap_host: lldap
+    ldap_port: 3890

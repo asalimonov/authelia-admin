@@ -48,14 +48,6 @@
 	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">User Details</h1>
 		<div class="flex gap-2">
-			{#if data.canEditUser}
-				<a
-					href="{base}/users/{data.user?.id}/edit"
-					class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block text-center font-medium"
-				>
-					Edit
-				</a>
-			{/if}
 			{#if data.canDeleteUser}
 				<button
 					on:click={() => (showDeleteConfirm = true)}
@@ -63,6 +55,14 @@
 				>
 					Delete
 				</button>
+			{/if}
+			{#if data.canEditUser}
+				<a
+					href="{base}/users/{data.user?.id}/edit"
+					class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block text-center font-medium"
+				>
+					Edit
+				</a>
 			{/if}
 			<a
 				href="{base}/users"

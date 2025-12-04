@@ -1,5 +1,4 @@
 import type { PageServerLoad } from './$types';
-import { ldapClient } from '$lib/server/ldap';
 import { getAccessService, Permission, EntityType, type DirectoryServiceType } from '$lib/server/access-service';
 import { getDirectoryServiceAsync } from '$lib/server/directory-service';
 import { getConfigAsync } from '$lib/server/config';
@@ -12,7 +11,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         const directoryService = await getDirectoryServiceAsync();
         const accessService = getAccessService(
             directoryService,
-            config.directory_service.type as DirectoryServiceType
+            config.directory.type as DirectoryServiceType
         );
         const username = locals.user?.username || '';
         canCreateUsers = await accessService.check(username, Permission.USER_CREATE, EntityType.NONE);
@@ -21,26 +20,23 @@ export const load: PageServerLoad = async ({ locals }) => {
     }
 
     try {
-        const users = await ldapClient.getUsers();
-        const ldapServer = await ldapClient.getServerInfo();
+        const directoryService = await getDirectoryServiceAsync();
+        const users = await directoryService.listUsers();
 
-        // Sort users by username
-        users.sort((a, b) => a.uid.localeCompare(b.uid));
+        // Sort users by id (username)
+        users.sort((a, b) => a.id.localeCompare(b.id));
 
         return {
             error: null,
             users,
-            ldapServer,
             canCreateUsers
         };
     } catch (error) {
-        console.error('Error fetching LDAP users:', error);
-        const ldapServer = await ldapClient.getServerInfo();
+        console.error('Error fetching users:', error);
 
         return {
-            error: `Failed to fetch users from LDAP: ${(error as Error).message}`,
+            error: `Failed to fetch users: ${(error as Error).message}`,
             users: [],
-            ldapServer,
             canCreateUsers
         };
     }

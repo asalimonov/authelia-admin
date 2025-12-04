@@ -76,3 +76,7 @@ export const REMOVE_USER_FROM_GROUP = `
     }
   }
 `;
+
+// Note: Password changes are handled via LDAP protocol, not GraphQL.
+// LLDAP's GraphQL schema doesn't support password modifications.
+// See LLDAPGraphQLService.changePassword() which uses ldapts.

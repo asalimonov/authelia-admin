@@ -40,10 +40,5 @@
     "ldapts": "^8.0.9",
     "sqlite3": "^5.1.7",
     "yaml": "^2.8.1"
-  },
-  "overrides": {
-    "vite": {
-      "rollup": "npm:@rollup/wasm-node"
-    }
   }
 }

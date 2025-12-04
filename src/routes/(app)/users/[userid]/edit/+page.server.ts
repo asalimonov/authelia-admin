@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         const directoryService = await getDirectoryServiceAsync();
         const accessService = getAccessService(
             directoryService,
-            config.directory_service.type as DirectoryServiceType
+            config.directory.type as DirectoryServiceType
         );
 
         // Check if user can edit users
@@ -86,7 +86,7 @@ export const actions: Actions = {
             const directoryService = await getDirectoryServiceAsync();
             const accessService = getAccessService(
                 directoryService,
-                config.directory_service.type as DirectoryServiceType
+                config.directory.type as DirectoryServiceType
             );
 
             // Check permission
@@ -162,7 +162,7 @@ export const actions: Actions = {
             const directoryService = await getDirectoryServiceAsync();
             const accessService = getAccessService(
                 directoryService,
-                config.directory_service.type as DirectoryServiceType
+                config.directory.type as DirectoryServiceType
             );
 
             // Check permission
@@ -210,7 +210,7 @@ export const actions: Actions = {
             const directoryService = await getDirectoryServiceAsync();
             const accessService = getAccessService(
                 directoryService,
-                config.directory_service.type as DirectoryServiceType
+                config.directory.type as DirectoryServiceType
             );
 
             // Check permission

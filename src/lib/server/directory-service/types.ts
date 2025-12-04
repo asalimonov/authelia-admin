@@ -94,6 +94,8 @@ export interface IDirectoryService {
 	deleteUser(userId: string): Promise<OperationResult>;
 	listUsers(): Promise<UserSummary[]>;
 	getUserDetails(userId: string): Promise<User | null>;
+	getUserByEmail(email: string): Promise<User | null>;
+	changePassword(userId: string, newPassword: string): Promise<OperationResult>;
 
 	// Group operations
 	createGroup(input: CreateGroupInput): Promise<Group>;

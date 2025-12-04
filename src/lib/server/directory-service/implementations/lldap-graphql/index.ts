@@ -16,6 +16,7 @@ import { LLDAPGraphQLClient } from './client';
 import * as queries from './queries';
 import * as mutations from './mutations';
 import * as mappers from './mappers';
+import { Client as LdapClient, Attribute, Change } from 'ldapts';
 import type {
 	LLDAPUser,
 	LLDAPUserSummary,
@@ -90,9 +91,74 @@ interface LLDAPGroupWithNumericId extends LLDAPGroupSummary {
 
 export class LLDAPGraphQLService implements IDirectoryService {
 	private client: LLDAPGraphQLClient;
+	private config: LLDAPGraphQLConfig;
 
 	constructor(config: LLDAPGraphQLConfig) {
 		this.client = new LLDAPGraphQLClient(config);
+		this.config = config;
+	}
+
+	/**
+	 * Get LDAP URL from config.
+	 * Uses ldap_host and ldap_port from config, with fallback to derive from endpoint.
+	 */
+	private getLdapUrl(): string {
+		const host = this.config.ldap_host || this.deriveHostFromEndpoint();
+		const port = this.config.ldap_port || 3890;
+		return `ldap://${host}:${port}`;
+	}
+
+	/**
+	 * Derive LDAP host from GraphQL endpoint as fallback.
+	 * GraphQL: http://lldap:17170/api/graphql -> host: lldap
+	 */
+	private deriveHostFromEndpoint(): string {
+		try {
+			const url = new URL(this.config.endpoint);
+			return url.hostname;
+		} catch {
+			// Fallback for malformed URLs
+			const match = this.config.endpoint.match(/\/\/([^:/]+)/);
+			return match ? match[1] : 'lldap';
+		}
+	}
+
+	/**
+	 * Derive base DN from the GraphQL endpoint hostname.
+	 * For LLDAP, this is typically dc=localhost,dc=test or similar.
+	 * We'll query the server to get it from the first user.
+	 */
+	private async getBaseDn(): Promise<string> {
+		// Try to get the base DN from an existing user's DN
+		const users = await this.listUsers();
+		if (users.length > 0) {
+			const user = await this.getUserDetails(users[0].id);
+			if (user) {
+				// The user's UUID format from LLDAP doesn't help us get the base DN
+				// We need to use a known convention for LLDAP: dc=localhost,dc=test
+				// This should be configurable, but for now we'll use a default
+			}
+		}
+		// Default base DN - this should ideally be configurable
+		return process.env.LLDAP_BASE_DN || 'dc=localhost,dc=test';
+	}
+
+	/**
+	 * Create an LDAP connection for password changes.
+	 * LLDAP's GraphQL doesn't support password changes, so we use LDAP.
+	 */
+	private async createLdapConnection(): Promise<LdapClient> {
+		const ldapUrl = this.getLdapUrl();
+		const baseDn = await this.getBaseDn();
+
+		const ldapClient = new LdapClient({ url: ldapUrl });
+
+		// Bind as the admin user
+		// LLDAP uses uid=username,ou=people,dc=... format for user DN
+		const bindDn = `uid=${this.config.user},ou=people,${baseDn}`;
+		await ldapClient.bind(bindDn, this.config.password);
+
+		return ldapClient;
 	}
 
 	/**
@@ -147,6 +213,54 @@ export class LLDAPGraphQLService implements IDirectoryService {
 			return mappers.mapUser(result.user);
 		} catch {
 			return null;
+		}
+	}
+
+	async getUserByEmail(email: string): Promise<User | null> {
+		try {
+			const users = await this.listUsers();
+			const normalizedEmail = email.toLowerCase();
+			const matchingUser = users.find((u) => u.email.toLowerCase() === normalizedEmail);
+			if (matchingUser) {
+				return this.getUserDetails(matchingUser.id);
+			}
+			return null;
+		} catch {
+			return null;
+		}
+	}
+
+	async changePassword(userId: string, newPassword: string): Promise<OperationResult> {
+		let ldapClient: LdapClient | null = null;
+		try {
+			// LLDAP's GraphQL API doesn't support password changes,
+			// so we use LDAP protocol directly
+			ldapClient = await this.createLdapConnection();
+			const baseDn = await this.getBaseDn();
+
+			// LLDAP uses uid=username,ou=people,dc=... format
+			const userDn = `uid=${userId},ou=people,${baseDn}`;
+
+			const change = new Change({
+				operation: 'replace',
+				modification: new Attribute({
+					type: 'userPassword',
+					values: [newPassword]
+				})
+			});
+
+			await ldapClient.modify(userDn, change);
+			return { success: true };
+		} catch (error) {
+			return { success: false, error: (error as Error).message };
+		} finally {
+			if (ldapClient) {
+				try {
+					await ldapClient.unbind();
+				} catch {
+					// Ignore unbind errors
+				}
+			}
 		}
 	}
 

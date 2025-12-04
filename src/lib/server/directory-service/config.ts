@@ -8,6 +8,8 @@ export interface LLDAPGraphQLConfig {
 	endpoint: string;
 	user: string;
 	password: string;
+	ldap_host: string;
+	ldap_port: number;
 }
 
 // Future: Add other config types
@@ -22,12 +24,16 @@ export type ServiceConfig = LLDAPGraphQLConfig; // | ActiveDirectoryConfig | ...
 export function createLLDAPConfig(
 	endpoint: string,
 	user: string,
-	password: string
+	password: string,
+	ldap_host = 'lldap',
+	ldap_port = 3890
 ): LLDAPGraphQLConfig {
 	return {
 		type: 'lldap-graphql',
 		endpoint,
 		user,
-		password
+		password,
+		ldap_host,
+		ldap_port
 	};
 }

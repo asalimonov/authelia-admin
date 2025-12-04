@@ -1,5 +1,4 @@
 import type { PageServerLoad, Actions } from './$types';
-import { ldapClient } from '$lib/server/ldap';
 import { fail, redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
 import { validatePassword } from '$lib/utils/validation';
@@ -16,7 +15,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         const directoryService = await getDirectoryServiceAsync();
         const accessService = getAccessService(
             directoryService,
-            config.directory_service.type as DirectoryServiceType
+            config.directory.type as DirectoryServiceType
         );
 
         const user = await directoryService.getUserDetails(userid);
@@ -87,7 +86,7 @@ export const actions: Actions = {
             const directoryService = await getDirectoryServiceAsync();
             const accessService = getAccessService(
                 directoryService,
-                config.directory_service.type as DirectoryServiceType
+                config.directory.type as DirectoryServiceType
             );
 
             // Check permission - allow if own account OR has USER_CHANGE_PASSWORD permission
@@ -121,10 +120,10 @@ export const actions: Actions = {
                 return fail(400, { error: passwordValidation.errors.join('. ') });
             }
 
-            const success = await ldapClient.changePassword(userid, newPassword);
+            const result = await directoryService.changePassword(userid, newPassword);
 
-            if (!success) {
-                return fail(500, { error: 'Failed to change password' });
+            if (!result.success) {
+                return fail(500, { error: result.error || 'Failed to change password' });
             }
 
             return {
@@ -148,7 +147,7 @@ export const actions: Actions = {
             const directoryService = await getDirectoryServiceAsync();
             const accessService = getAccessService(
                 directoryService,
-                config.directory_service.type as DirectoryServiceType
+                config.directory.type as DirectoryServiceType
             );
 
             // Check permission

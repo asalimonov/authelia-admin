@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         const directoryService = await getDirectoryServiceAsync();
         const accessService = getAccessService(
             directoryService,
-            config.directory_service.type as DirectoryServiceType
+            config.directory.type as DirectoryServiceType
         );
 
         // Check if user has permission to create users
@@ -53,7 +53,7 @@ export const actions: Actions = {
             const directoryService = await getDirectoryServiceAsync();
             const accessService = getAccessService(
                 directoryService,
-                config.directory_service.type as DirectoryServiceType
+                config.directory.type as DirectoryServiceType
             );
 
             // Check permission again before creating
@@ -94,6 +94,10 @@ export const actions: Actions = {
                 errors.push('Invalid email format');
             }
 
+            if (!displayName) {
+                errors.push('Display name is required');
+            }
+
             if (!password) {
                 errors.push('Password is required');
             } else {
@@ -119,6 +123,15 @@ export const actions: Actions = {
             if (existingUser) {
                 return fail(400, {
                     error: `User with ID '${userId}' already exists`,
+                    values: { userId, email, displayName, firstName, lastName }
+                });
+            }
+
+            // Check if email is already in use
+            const existingEmailUser = await directoryService.getUserByEmail(email);
+            if (existingEmailUser) {
+                return fail(400, {
+                    error: `A user with email '${email}' already exists`,
                     values: { userId, email, displayName, firstName, lastName }
                 });
             }

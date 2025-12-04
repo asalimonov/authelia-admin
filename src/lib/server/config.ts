@@ -1,6 +1,10 @@
 /**
  * Centralized application configuration loader
  * Loads configuration from /opt/authelia-admin/config.yml (or configured path)
+ *
+ * Environment variables use the AAD_ prefix (Authelia Admin):
+ * - AAD_AUTHELIA_DOMAIN, AAD_AUTHELIA_COOKIE_NAME, etc.
+ * - AAD_DIRECTORY_TYPE, AAD_DIRECTORY_LLDAP_GRAPHQL_ENDPOINT, etc.
  */
 
 import { promises as fs } from 'node:fs';
@@ -15,16 +19,22 @@ export interface AutheliaConfig {
 	allowed_users: string[];
 }
 
-export interface DirectoryServiceConfig {
-	type: 'lldap-graphql';
+export interface LLDAPGraphQLConfigFields {
 	endpoint: string;
 	user: string;
 	password: string;
+	ldap_host: string;
+	ldap_port: number;
+}
+
+export interface DirectoryConfig {
+	type: 'lldap-graphql';
+	'lldap-graphql': LLDAPGraphQLConfigFields;
 }
 
 export interface AppConfig {
 	authelia: AutheliaConfig;
-	directory_service: DirectoryServiceConfig;
+	directory: DirectoryConfig;
 }
 
 // === Default Values ===
@@ -38,11 +48,12 @@ const DEFAULT_AUTHELIA_CONFIG: AutheliaConfig = {
 	allowed_users: []
 };
 
-const DEFAULT_DIRECTORY_SERVICE_CONFIG: DirectoryServiceConfig = {
-	type: 'lldap-graphql',
+const DEFAULT_LLDAP_GRAPHQL_CONFIG: LLDAPGraphQLConfigFields = {
 	endpoint: 'http://lldap:17170/api/graphql',
 	user: 'admin',
-	password: ''
+	password: '',
+	ldap_host: 'lldap',
+	ldap_port: 3890
 };
 
 // === Singleton State ===
@@ -56,7 +67,7 @@ let configLoadPromise: Promise<AppConfig> | null = null;
  * Load and parse configuration from YAML file
  */
 export async function loadConfig(
-	configPath: string = process.env.CONFIG_PATH || DEFAULT_CONFIG_PATH
+	configPath: string = process.env.AAD_CONFIG_PATH || process.env.CONFIG_PATH || DEFAULT_CONFIG_PATH
 ): Promise<AppConfig> {
 	if (configInstance) {
 		return configInstance;
@@ -73,7 +84,7 @@ export async function loadConfig(
 
 			configInstance = {
 				authelia: parseAutheliaConfig(parsed?.authelia),
-				directory_service: parseDirectoryServiceConfig(parsed?.directory_service)
+				directory: parseDirectoryConfig(parsed?.directory)
 			};
 
 			console.log(`Configuration loaded from ${configPath}`);
@@ -123,40 +134,71 @@ export function resetConfig(): void {
 // === Parsing Helpers ===
 
 function parseAutheliaConfig(config: unknown): AutheliaConfig {
-	if (!config || typeof config !== 'object') {
-		return loadAutheliaFromEnvironment();
-	}
+	const cfg = (config && typeof config === 'object') ? config as Record<string, unknown> : {};
 
-	const cfg = config as Record<string, unknown>;
+	// Parse from YAML with env var substitution, then apply env var overrides
+	const domain = process.env.AAD_AUTHELIA_DOMAIN ||
+		substituteEnvVars(String(cfg.domain || DEFAULT_AUTHELIA_CONFIG.domain));
 
-	return {
-		domain: substituteEnvVars(String(cfg.domain || DEFAULT_AUTHELIA_CONFIG.domain)),
-		cookie_name: substituteEnvVars(
-			String(cfg.cookie_name || DEFAULT_AUTHELIA_CONFIG.cookie_name)
-		),
-		min_auth_level: Number(cfg.min_auth_level ?? DEFAULT_AUTHELIA_CONFIG.min_auth_level),
-		allowed_users: parseAllowedUsers(cfg.allowed_users)
-	};
+	const cookie_name = process.env.AAD_AUTHELIA_COOKIE_NAME ||
+		substituteEnvVars(String(cfg.cookie_name || DEFAULT_AUTHELIA_CONFIG.cookie_name));
+
+	const min_auth_level = process.env.AAD_AUTHELIA_MIN_AUTH_LEVEL
+		? parseInt(process.env.AAD_AUTHELIA_MIN_AUTH_LEVEL, 10)
+		: (cfg.min_auth_level !== undefined
+			? Number(cfg.min_auth_level)
+			: DEFAULT_AUTHELIA_CONFIG.min_auth_level);
+
+	const allowed_users = process.env.AAD_AUTHELIA_ALLOWED_USERS
+		? process.env.AAD_AUTHELIA_ALLOWED_USERS.split(',').map((u) => u.trim()).filter((u) => u.length > 0)
+		: parseAllowedUsers(cfg.allowed_users);
+
+	return { domain, cookie_name, min_auth_level, allowed_users };
 }
 
-function parseDirectoryServiceConfig(config: unknown): DirectoryServiceConfig {
-	if (!config || typeof config !== 'object') {
-		return loadDirectoryServiceFromEnvironment();
-	}
+function parseDirectoryConfig(config: unknown): DirectoryConfig {
+	const cfg = (config && typeof config === 'object') ? config as Record<string, unknown> : {};
 
-	const cfg = config as Record<string, unknown>;
+	// Get type from env var or config
+	const type = process.env.AAD_DIRECTORY_TYPE ||
+		substituteEnvVars(String(cfg.type || 'lldap-graphql'));
 
-	const type = String(cfg.type || 'lldap-graphql');
 	if (type !== 'lldap-graphql') {
-		throw new Error(`Unsupported directory service type: ${type}`);
+		throw new Error(`Unsupported directory type: ${type}`);
 	}
+
+	// Parse the type-specific config
+	const lldapConfig = parseLLDAPGraphQLConfig(cfg['lldap-graphql']);
 
 	return {
 		type: 'lldap-graphql',
-		endpoint: substituteEnvVars(String(cfg.endpoint || DEFAULT_DIRECTORY_SERVICE_CONFIG.endpoint)),
-		user: substituteEnvVars(String(cfg.user || DEFAULT_DIRECTORY_SERVICE_CONFIG.user)),
-		password: substituteEnvVars(String(cfg.password || DEFAULT_DIRECTORY_SERVICE_CONFIG.password))
+		'lldap-graphql': lldapConfig
 	};
+}
+
+function parseLLDAPGraphQLConfig(config: unknown): LLDAPGraphQLConfigFields {
+	const cfg = (config && typeof config === 'object') ? config as Record<string, unknown> : {};
+
+	// Each field can be overridden by AAD_DIRECTORY_LLDAP_GRAPHQL_* env vars
+	const endpoint = process.env.AAD_DIRECTORY_LLDAP_GRAPHQL_ENDPOINT ||
+		substituteEnvVars(String(cfg.endpoint || DEFAULT_LLDAP_GRAPHQL_CONFIG.endpoint));
+
+	const user = process.env.AAD_DIRECTORY_LLDAP_GRAPHQL_USER ||
+		substituteEnvVars(String(cfg.user || DEFAULT_LLDAP_GRAPHQL_CONFIG.user));
+
+	const password = process.env.AAD_DIRECTORY_LLDAP_GRAPHQL_PASSWORD ||
+		substituteEnvVars(String(cfg.password || DEFAULT_LLDAP_GRAPHQL_CONFIG.password));
+
+	const ldap_host = process.env.AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_HOST ||
+		substituteEnvVars(String(cfg.ldap_host || DEFAULT_LLDAP_GRAPHQL_CONFIG.ldap_host));
+
+	const ldap_port = process.env.AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_PORT
+		? parseInt(process.env.AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_PORT, 10)
+		: (cfg.ldap_port !== undefined
+			? Number(cfg.ldap_port)
+			: DEFAULT_LLDAP_GRAPHQL_CONFIG.ldap_port);
+
+	return { endpoint, user, password, ldap_host, ldap_port };
 }
 
 function parseAllowedUsers(users: unknown): string[] {
@@ -176,30 +218,8 @@ function parseAllowedUsers(users: unknown): string[] {
 
 function loadFromEnvironment(): AppConfig {
 	return {
-		authelia: loadAutheliaFromEnvironment(),
-		directory_service: loadDirectoryServiceFromEnvironment()
-	};
-}
-
-function loadAutheliaFromEnvironment(): AutheliaConfig {
-	return {
-		domain: process.env.AUTHELIA_DOMAIN || DEFAULT_AUTHELIA_CONFIG.domain,
-		cookie_name: process.env.AUTHELIA_COOKIE_NAME || DEFAULT_AUTHELIA_CONFIG.cookie_name,
-		min_auth_level: process.env.MIN_AUTH_LEVEL
-			? parseInt(process.env.MIN_AUTH_LEVEL, 10)
-			: DEFAULT_AUTHELIA_CONFIG.min_auth_level,
-		allowed_users: process.env.ALLOWED_USERS
-			? process.env.ALLOWED_USERS.split(',').map((u) => u.trim())
-			: DEFAULT_AUTHELIA_CONFIG.allowed_users
-	};
-}
-
-function loadDirectoryServiceFromEnvironment(): DirectoryServiceConfig {
-	return {
-		type: 'lldap-graphql',
-		endpoint: process.env.LLDAP_ENDPOINT || DEFAULT_DIRECTORY_SERVICE_CONFIG.endpoint,
-		user: process.env.LLDAP_USER || DEFAULT_DIRECTORY_SERVICE_CONFIG.user,
-		password: process.env.LLDAP_PASSWORD || DEFAULT_DIRECTORY_SERVICE_CONFIG.password
+		authelia: parseAutheliaConfig({}),
+		directory: parseDirectoryConfig({})
 	};
 }
 

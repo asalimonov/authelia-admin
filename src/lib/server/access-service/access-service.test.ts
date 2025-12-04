@@ -42,6 +42,15 @@ function createMockDirectoryService(
         deleteUser: vi.fn(),
         listUsers: vi.fn(),
         getUserDetails: vi.fn(async (userId: string) => users.get(userId) || null),
+        getUserByEmail: vi.fn(async (email: string) => {
+            for (const user of users.values()) {
+                if (user.email.toLowerCase() === email.toLowerCase()) {
+                    return user;
+                }
+            }
+            return null;
+        }),
+        changePassword: vi.fn(async () => ({ success: true })),
         createGroup: vi.fn(),
         updateGroup: vi.fn(),
         deleteGroup: vi.fn(),

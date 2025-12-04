@@ -79,7 +79,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const directoryService = await getDirectoryServiceAsync();
 			const accessService = getAccessService(
 				directoryService,
-				appConfig.directory_service.type as DirectoryServiceType
+				appConfig.directory.type as DirectoryServiceType
 			);
 
 			const role = await accessService.getUserRole(username);
