@@ -21,17 +21,23 @@ Authelia Admin Control Panel - A web-based administration interface for managing
 
 ### Implemented
 - View and manage TOTP configurations
-- View TOTP history (replay attack prevention logs)
-- Manage banned users and IPs (create, view, delete)
-- Browse LDAP users and groups (read-only due to LLDAP limitations)
-- Change user passwords via LDAP
+- View TOTP history
+- Management of users and groups in LLDAP
+- Managemenent of banned users and IPs
+- Dedicated role for management of regular users (user_manager)
+- Dedicated role for  (user_manager)
+- Roles: admin, user_manager (management of users), passowrd_manager (can change passwords). No access for regular users.
 
-### Not Yet Implemented
-- Full user management via LDAP
-- PostgreSQL engine support for Authelia
+### Not yet implemented
+
+- Management of attributes of users and groups
+- Management of users and groups via LDAP protocol
+- PostgreSQL engine for Authelia
 - Browse and management of users in Authelia file provider
 
 ## Development Commands
+
+All commands should be run inside docker environment
 
 ```bash
 # Install dependencies
@@ -72,6 +78,12 @@ make stop         # Stop and remove container
 # Docker Compose with test environment
 make docker-compose-run  # Run full test stack (Authelia, LLDAP, Traefik)
 
+# Testing (requires docker-compose-run for functional tests)
+make test          # Run all tests (unit + functional)
+make test-small    # Run unit tests only
+make test-medium   # Run functional tests only
+make test-lint     # Run ESLint on TypeScript code
+
 # Cleanup
 make clean         # Clean up images and local files
 make network-remove # Remove Docker network
@@ -85,8 +97,9 @@ make network-remove # Remove Docker network
 src/
 ├── lib/
 │   └── server/
-│       ├── database.ts    # SQLite adapter with optimizations
-│       └── ldap.ts        # LDAP client singleton class
+│       ├── database.ts          # SQLite adapter with optimizations
+│       ├── ldap.ts              # LDAP client singleton class
+│       └── directory-service/   # Directory service abstraction
 ├── routes/
 │   ├── (app)/            # Protected routes requiring auth
 │   │   ├── totp/         # TOTP management pages
@@ -120,19 +133,33 @@ test-configs/
 
 ### Environment Variables
 
+All configuration uses the `AAD_` prefix (Authelia Admin):
+
 ```bash
 # Server Configuration
 PORT=9093                                        # Server port
-HOST=0.0.0.0                                    # Server host
+HOST=0.0.0.0                                     # Server host
+
+# Config file path
+AAD_CONFIG_PATH=/opt/authelia-admin/config.yml   # Path to config file
 
 # Authelia Integration
-AUTHELIA_CONFIG_PATH=/config/configuration.yml  # Path to Authelia config
-AUTHELIA_DOMAIN=auth.localhost.test            # Authelia domain for auth
-ALLOWED_USERS=admin,user2                      # Comma-separated allowed users
+AAD_AUTHELIA_DOMAIN=auth.localhost.test          # Authelia domain for auth
+AAD_AUTHELIA_COOKIE_NAME=authelia_session        # Session cookie name
+AAD_AUTHELIA_MIN_AUTH_LEVEL=2                    # Min auth level (1=password, 2=2FA)
+AAD_AUTHELIA_ALLOWED_USERS=admin,user2           # Comma-separated allowed users, optional
+
+# Directory Service (LLDAP GraphQL)
+AAD_DIRECTORY_TYPE=lldap-graphql                 # Directory service type
+AAD_DIRECTORY_LLDAP_GRAPHQL_ENDPOINT=http://lldap:17170/api/graphql
+AAD_DIRECTORY_LLDAP_GRAPHQL_USER=admin           # LLDAP admin username
+AAD_DIRECTORY_LLDAP_GRAPHQL_PASSWORD=secret      # LLDAP admin password
+AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_HOST=lldap      # LDAP host for password changes
+AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_PORT=3890       # LDAP port for password changes
 
 # Security
-TRUSTED_ORIGINS=https://auth.localhost.test    # CSRF trusted origins
-NODE_TLS_REJECT_UNAUTHORIZED=0                 # Dev only - remove in production!
+TRUSTED_ORIGINS=https://auth.localhost.test      # CSRF trusted origins
+NODE_TLS_REJECT_UNAUTHORIZED=0                   # Dev only - remove in production!
 ```
 
 ### Application Paths
@@ -146,7 +173,7 @@ NODE_TLS_REJECT_UNAUTHORIZED=0                 # Dev only - remove in production
 ### Authentication Flow
 1. Check for `authelia_session` cookie
 2. Validate session with Authelia API (`/api/state`)
-3. Verify user is in `ALLOWED_USERS` list
+3. Verify user is in `ALLOWED_USERS` list (allowed_users list is optional)
 4. Require authentication level 2 (2FA) for admin access
 5. Store user info in `event.locals.user`
 
@@ -156,18 +183,53 @@ NODE_TLS_REJECT_UNAUTHORIZED=0                 # Dev only - remove in production
 - Custom `dbRun` implementation for proper result handling
 - Connection opened as READWRITE only
 
-### LDAP Integration (ldap.ts)
-```typescript
-// Singleton pattern
-const ldapClient = LdapClient.getInstance();
+### Directory Service Abstraction
 
-// Available methods
-ldapClient.getUsers()        // Get all users
-ldapClient.getUser(uid)      // Get specific user
-ldapClient.updateUser(...)   // Update user (limited by LLDAP)
-ldapClient.changePassword()  // Change user password
-ldapClient.getGroups()       // Get all groups
+Located in `src/lib/server/directory-service/`, this abstraction provides a unified interface for user/group management across different directory backends.
+
+**Structure:**
 ```
+src/lib/server/directory-service/
+├── index.ts              # Public API exports
+├── types.ts              # Common interfaces (User, Group, IDirectoryService)
+├── config.ts             # Configuration types for backends
+├── factory.ts            # Service factory for creating instances
+└── implementations/
+    └── lldap-graphql/    # LLDAP GraphQL implementation
+        ├── index.ts      # LLDAPGraphQLService class
+        ├── client.ts     # GraphQL client with token management
+        ├── queries.ts    # GraphQL queries
+        ├── mutations.ts  # GraphQL mutations
+        └── mappers.ts    # Type converters (LLDAP <-> common types)
+```
+
+**Usage:**
+```typescript
+import { getDirectoryServiceAsync } from '$lib/server/directory-service';
+
+// Get the singleton service (initialized from config)
+const service = await getDirectoryServiceAsync();
+const users = await service.listUsers();
+const user = await service.getUserDetails('admin');
+```
+
+**Configuration Format (config.yml):**
+```yaml
+directory:
+  type: lldap-graphql
+  lldap-graphql:
+    endpoint: http://lldap:17170/api/graphql
+    user: admin
+    password: secret
+    ldap_host: lldap
+    ldap_port: 3890
+```
+
+**Key design decisions:**
+- Group IDs are strings (UUIDs) at the interface level
+- LLDAP implementation maps internal numeric IDs to UUIDs
+- Thread-safe bearer token management with automatic refresh
+- Configuration supports both YAML and environment variables (AAD_ prefix)
 
 ### Security Measures
 - CSRF protection via `trustedOrigins`
@@ -253,7 +315,7 @@ npm rebuild sqlite3 --build-from-source
 
 - TypeScript strict mode is enabled - ensure all types are properly defined
 - The project uses Svelte 5 with new runes syntax (`$props()`, `$state()`)
-- Always use the LdapClient singleton, never create new instances
+- Always use `getDirectoryServiceAsync()` to get the directory service instance
 - Database connections must be properly closed after operations
 - All user inputs must be validated server-side
 - Keep sensitive data (passwords, secrets) out of logs

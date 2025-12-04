@@ -1,0 +1,14 @@
+{
+  "id": "usermanager",
+  "email": "um@localhost.test",
+  "password": "user1234",
+  "displayName": "User Manager",
+  "firstName": "User",
+  "lastName": "Manager",
+  "gravatar_avatar": "false",
+  "weserv_avatar": "false",
+  "groups": [
+    "authelia_user_manager",
+    "cloud"
+  ]
+}

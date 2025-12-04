@@ -4,6 +4,8 @@ DOCKER_IMAGE_TAG ?= latest
 DOCKER_CONTAINER_NAME ?= authelia-admin
 DOCKER_DEV_IMAGE_NAME ?= authelia-admin-dev
 DOCKER_DEV_IMAGE_TAG ?= latest
+DOCKER_CI_IMAGE_NAME ?= authelia-admin-ci
+DOCKER_CI_IMAGE_TAG ?= latest
 DOCKER_PORT ?= 9093
 DOCKER_NETWORK_NAME ?= authelia
 DOCKER_NETWORK_CIDR ?= 192.168.38.0/24
@@ -15,32 +17,45 @@ network: ## Create Docker network if it doesn't exist
 		docker network create --subnet=$(DOCKER_NETWORK_CIDR) $(DOCKER_NETWORK_NAME)
 	@echo "Docker network '$(DOCKER_NETWORK_NAME)' is ready"
 
-.PHONY: build 
-build: ## Build Docker image
-	npm install
-	docker build -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
+.PHONY: pre-build
+pre-build: ## Build CI image with all dependencies for linting/testing (optional for build)
+	@if [ ! -f package-lock.json ]; then \
+		echo "package-lock.json not found, generating..."; \
+		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
+	fi
+	docker build --network=host -f ci.Dockerfile -t $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) .
 
+.PHONY: build
+build: ## Build production Docker image (self-contained, no pre-build required)
+	@if [ ! -f package-lock.json ]; then \
+		echo "package-lock.json not found, generating..."; \
+		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
+	fi
+	docker build --network=host -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
 
 .PHONY: build-dev
 build-dev: ## Build development Docker image
-	docker build -f dev.Dockerfile -t $(DOCKER_DEV_IMAGE_NAME):$(DOCKER_DEV_IMAGE_TAG) .
+	docker build --network=host -f dev.Dockerfile -t $(DOCKER_DEV_IMAGE_NAME):$(DOCKER_DEV_IMAGE_TAG) .
 
 .PHONY: run
-run: network ## Run Docker container
+run: network ## Run production Docker container
 	docker run --rm --network $(DOCKER_NETWORK_NAME) \
-		-v ./test-configs/authelia:/config -v ./.test-data/authelia:/data \
+		-v ./test-configs/config.yml:/opt/authelia-admin/config.yml:ro \
+		-v ./test-configs/authelia:/config \
+		-v ./.test-data/authelia:/data \
 		-e NODE_TLS_REJECT_UNAUTHORIZED=0 \
 		--name $(DOCKER_CONTAINER_NAME) \
 		-p $(DOCKER_PORT):9093 \
 		$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)
 
-
 .PHONY: run-dev
-run-dev: network build-dev ## Run development Docker container
+run-dev: network build-dev ## Run development Docker container with hot-reload
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	docker run --rm -it \
+	docker run --rm -i \
 		-v $(PWD):/app \
+		-v /app/node_modules \
+		-v $(PWD)/test-configs/config.yml:/opt/authelia-admin/config.yml:ro \
 		--network $(DOCKER_NETWORK_NAME) \
 		-v ./test-configs/authelia:/config \
 		-v ./.test-data/authelia:/data \
@@ -53,12 +68,32 @@ stop: ## Stop and remove Docker container
 	-docker stop $(DOCKER_CONTAINER_NAME)
 	-docker rm $(DOCKER_CONTAINER_NAME)
 
-.PHONY: docker-compose-run
-docker-compose-run: network ## Run docker-compose with external network
+.PHONY: test
+test: pre-build test-lint test-small ## Run tests (w/o functional)
+
+.PHONY: test-small
+test-small: ## Run unit tests (requires pre-build)
+	docker run --rm --network $(DOCKER_NETWORK_NAME) \
+		-e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm test
+
+.PHONY: test-medium
+test-medium: ## Run functional tests (requires pre-build and run-docker-compose)
+	docker run --rm --network $(DOCKER_NETWORK_NAME) \
+		-e NODE_TLS_REJECT_UNAUTHORIZED=0 \
+		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm run test:functional
+
+.PHONY: test-lint
+test-lint: ## Run ESLint on TypeScript code (requires pre-build)
+	docker run --rm --network $(DOCKER_NETWORK_NAME) \
+		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm run lint
+
+.PHONY: run-docker-compose
+run-docker-compose: network ## Run docker compose with network dependencies within external network
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
 	(sleep 5 && docker compose exec -T lldap /bootstrap/bootstrap.sh) &
-	docker-compose up
+	docker compose up
 
 .PHONY: all
 all: build ## Build docker image
@@ -71,9 +106,9 @@ network-remove: ## Remove Docker network
 clean: ## Clean up Docker images and local files
 	-docker rmi $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)
 	-docker rmi $(DOCKER_DEV_IMAGE_NAME):$(DOCKER_DEV_IMAGE_TAG)
+	-docker rmi $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG)
 	rm -rf ./.test-data
 	rm -rf ./node_modules
-	rm -rf ./package-lock.json
 	rm -rf ./build
 	rm -rf ./.svelte-kit
 

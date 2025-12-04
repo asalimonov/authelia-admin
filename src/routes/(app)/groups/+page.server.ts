@@ -1,27 +1,33 @@
 import type { PageServerLoad } from './$types';
-import { ldapClient } from '$lib/server/ldap';
+import { getDirectoryServiceAsync, type Group } from '$lib/server/directory-service';
 
 export const load: PageServerLoad = async () => {
     try {
-        const groups = await ldapClient.getGroups();
-        const ldapServer = await ldapClient.getServerInfo();
-        
-        // Sort groups by name
-        groups.sort((a, b) => a.cn.localeCompare(b.cn));
-        
+        const directoryService = await getDirectoryServiceAsync();
+        const groupSummaries = await directoryService.listGroups();
+
+        // Fetch full details for each group to get members
+        const groups: Group[] = [];
+        for (const summary of groupSummaries) {
+            const details = await directoryService.getGroupDetails(summary.id);
+            if (details) {
+                groups.push(details);
+            }
+        }
+
+        // Sort groups by displayName
+        groups.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
         return {
             error: null,
-            groups,
-            ldapServer
+            groups
         };
     } catch (error) {
-        console.error('Error fetching LDAP groups:', error);
-        const ldapServer = await ldapClient.getServerInfo();
-        
+        console.error('Error fetching groups:', error);
+
         return {
-            error: `Failed to fetch groups from LDAP: ${(error as Error).message}`,
-            groups: [],
-            ldapServer
+            error: `Failed to fetch groups: ${(error as Error).message}`,
+            groups: []
         };
     }
 };

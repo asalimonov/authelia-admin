@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>%sveltekit.error.message%</title>
+		<style>
+			body {
+				--bg: #f9fafb;
+				--fg: #1f2937;
+				--fg-muted: #4b5563;
+				--link: #2563eb;
+				background: var(--bg);
+				color: var(--fg);
+				font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				height: 100vh;
+				margin: 0;
+			}
+
+			.container {
+				text-align: center;
+			}
+
+			.status {
+				font-weight: 700;
+				font-size: 6rem;
+				line-height: 1;
+				margin: 0 0 1rem 0;
+			}
+
+			.message {
+				font-size: 1.25rem;
+				color: var(--fg-muted);
+				margin: 0 0 2.5rem 0;
+			}
+
+			.links {
+				display: flex;
+				justify-content: center;
+				gap: 2rem;
+			}
+
+			.links a {
+				color: var(--link);
+				text-decoration: none;
+			}
+
+			.links a:hover {
+				text-decoration: underline;
+			}
+
+			@media (prefers-color-scheme: dark) {
+				body {
+					--bg: #111827;
+					--fg: #e5e7eb;
+					--fg-muted: #9ca3af;
+					--link: #60a5fa;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1 class="status">%sveltekit.status%</h1>
+			<p class="message">%sveltekit.error.message%</p>
+			<nav class="links">
+				<a href="/">Authelia</a>
+				<a href="/auth-admin/">Authelia Admin Panel</a>
+			</nav>
+		</div>
+	</body>
+</html>

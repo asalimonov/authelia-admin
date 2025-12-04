@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "HOST=0.0.0.0 PORT=9093 node build",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:functional": "vitest run --config vitest.functional.config.ts",
+    "lint": "eslint 'src/**/*.{ts,svelte}'"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.3.1",
@@ -17,21 +21,24 @@
     "@tailwindcss/vite": "^4.1.12",
     "@tsconfig/svelte": "^5.0.4",
     "@types/ldapjs": "^3.0.6",
+    "eslint": "^9.39.1",
+    "eslint-plugin-svelte": "2.46.1",
+    "globals": "^16.2.0",
     "serve": "^14.2.4",
     "svelte": "^5.38.1",
     "svelte-check": "^4.3.1",
     "tailwindcss": "^4.1.12",
     "typescript": "~5.9.3",
-    "vite": "^7.1.2"
+    "typescript-eslint": "^8.48.0",
+    "vite": "^7.1.2",
+    "vitest": "^3.2.3"
   },
   "dependencies": {
+    "@apollo/client": "^3.13.8",
+    "cross-fetch": "^4.1.0",
+    "graphql": "^16.11.0",
     "ldapts": "^8.0.9",
     "sqlite3": "^5.1.7",
     "yaml": "^2.8.1"
-  },
-	"overrides": {
-		"vite": {
-			"rollup": "npm:@rollup/wasm-node"
-		}
-	}
+  }
 }

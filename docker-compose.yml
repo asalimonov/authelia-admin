@@ -41,10 +41,12 @@ services:
   #   ports:
   #     - "9093:9093"
   #   volumes:
+  #     - './test-configs/config.yml:/opt/authelia-admin/config.yml:ro'
   #     - './test-configs/authelia:/config'
   #     - './.test-data/authelia:/data'
   #   environment:
   #     - TZ=UTC
+  #     - NODE_TLS_REJECT_UNAUTHORIZED=0
   #   healthcheck:
   #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/"]
   #     interval: 30s
@@ -52,7 +54,7 @@ services:
   #     retries: 3
 
   lldap:
-    image: 'docker.io/lldap/lldap:v0.6.2-debian'
+    image: 'ghcr.io/asalimonov/lldap:latest-debian'
     networks:
       authelia:
         aliases:
@@ -91,6 +93,8 @@ services:
           - auth.localhost.test
     container_name: "traefik"
     restart: "unless-stopped"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       - "--configfile=/etc/traefik/traefik.yml"
     ports:

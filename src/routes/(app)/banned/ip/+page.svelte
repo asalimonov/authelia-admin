@@ -15,7 +15,18 @@
 		return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 	}
 	
-	function getStatus(ban: any): { text: string; class: string } {
+	interface BanRecord {
+		id: number;
+		ip: string;
+		time: string | null;
+		expires: string | null;
+		source: string;
+		reason: string | null;
+		revoked: boolean;
+		expired: boolean;
+	}
+
+	function getStatus(ban: BanRecord): { text: string; class: string } {
 		// Check if manually revoked
 		if (ban.revoked) {
 			return { text: 'Revoked', class: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' };
@@ -265,7 +276,7 @@
 											action="{base}/banned/ip?/delete"
 											use:enhance={() => {
 												if (!confirmDelete(ban.id, ban.ip)) {
-													return async () => {};
+													return ({ cancel }) => cancel();
 												}
 												deletingId = ban.id;
 												return async ({ update }) => {
