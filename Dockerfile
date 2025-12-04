@@ -1,5 +1,13 @@
-FROM authelia-admin-ci:latest AS builder
+FROM node:25-alpine AS builder
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
+
+# Install ALL dependencies (including devDependencies for build)
+COPY package*.json ./
+RUN npm ci
+
+# Copy source and build
 COPY . .
 RUN npm run build
 

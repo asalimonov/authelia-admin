@@ -4,10 +4,14 @@ FROM node:25-alpine
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
-
-# Copy package files and install ALL dependencies (including devDependencies)
 COPY package*.json ./
 RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Generate .svelte-kit directory (required for tests)
+RUN npx svelte-kit sync
 
 # Image is ready for:
 # - npm run build (compile production app)

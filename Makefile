@@ -18,7 +18,7 @@ network: ## Create Docker network if it doesn't exist
 	@echo "Docker network '$(DOCKER_NETWORK_NAME)' is ready"
 
 .PHONY: pre-build
-pre-build: ## Build CI image with all dependencies for linting/testing/building
+pre-build: ## Build CI image with all dependencies for linting/testing (optional for build)
 	@if [ ! -f package-lock.json ]; then \
 		echo "package-lock.json not found, generating..."; \
 		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
@@ -26,10 +26,10 @@ pre-build: ## Build CI image with all dependencies for linting/testing/building
 	docker build --network=host -f ci.Dockerfile -t $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) .
 
 .PHONY: build
-build: ## Build production Docker image (requires pre-build)
-	@if ! docker image inspect $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) >/dev/null 2>&1; then \
-		echo "CI image not found. Running pre-build first..."; \
-		$(MAKE) pre-build; \
+build: ## Build production Docker image (self-contained, no pre-build required)
+	@if [ ! -f package-lock.json ]; then \
+		echo "package-lock.json not found, generating..."; \
+		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
 	fi
 	docker build --network=host -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
 
@@ -69,26 +69,23 @@ stop: ## Stop and remove Docker container
 	-docker rm $(DOCKER_CONTAINER_NAME)
 
 .PHONY: test
-test: pre-build test-lint test-small test-medium ## Run all tests (unit and functional)
+test: pre-build test-lint test-small ## Run tests (w/o functional)
 
 .PHONY: test-small
 test-small: ## Run unit tests (requires pre-build)
 	docker run --rm --network $(DOCKER_NETWORK_NAME) \
-		-v $(PWD):/app:ro -v /app/node_modules -v /app/.svelte-kit \
 		-e NODE_TLS_REJECT_UNAUTHORIZED=0 \
 		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm test
 
 .PHONY: test-medium
-test-medium: ## Run functional tests (requires pre-build and docker-compose-run)
+test-medium: ## Run functional tests (requires pre-build and run-docker-compose)
 	docker run --rm --network $(DOCKER_NETWORK_NAME) \
-		-v $(PWD):/app:ro -v /app/node_modules -v /app/.svelte-kit \
 		-e NODE_TLS_REJECT_UNAUTHORIZED=0 \
 		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm run test:functional
 
 .PHONY: test-lint
 test-lint: ## Run ESLint on TypeScript code (requires pre-build)
 	docker run --rm --network $(DOCKER_NETWORK_NAME) \
-		-v $(PWD):/app:ro -v /app/node_modules \
 		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm run lint
 
 .PHONY: run-docker-compose
@@ -112,7 +109,6 @@ clean: ## Clean up Docker images and local files
 	-docker rmi $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG)
 	rm -rf ./.test-data
 	rm -rf ./node_modules
-	rm -rf ./package-lock.json
 	rm -rf ./build
 	rm -rf ./.svelte-kit
 
