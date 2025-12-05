@@ -1,6 +1,7 @@
 import type {
 	User,
 	UserSummary,
+	UserWithGroups,
 	Group,
 	GroupSummary,
 	AttributeValue,
@@ -29,6 +30,10 @@ export interface LLDAPUserSummary {
 	id: string;
 	email: string;
 	displayName: string;
+}
+
+export interface LLDAPUserWithGroups extends LLDAPUserSummary {
+	groups: LLDAPGroupSummary[];
 }
 
 export interface LLDAPUser {
@@ -78,6 +83,15 @@ export function mapUserSummary(lldapUser: LLDAPUserSummary): UserSummary {
 		id: lldapUser.id,
 		email: lldapUser.email,
 		displayName: lldapUser.displayName
+	};
+}
+
+export function mapUserWithGroups(lldapUser: LLDAPUserWithGroups): UserWithGroups {
+	return {
+		id: lldapUser.id,
+		email: lldapUser.email,
+		displayName: lldapUser.displayName,
+		groups: lldapUser.groups.map(mapGroupSummary)
 	};
 }
 

@@ -62,30 +62,31 @@ export const load: PageServerLoad = async ({ params, locals }) => {
             groupid
         );
 
-        // If user can manage members, fetch all users
+        // If user can manage members, fetch all users with their groups
         let allUsers: { id: string; displayName: string; email: string }[] = [];
         const userPermissions: Record<string, { canAdd: boolean; canRemove: boolean }> = {};
 
         if (canAddMembers || canRemoveMembers) {
-            const users = await directoryService.listUsers();
-            allUsers = users;
-
-            // Check per-user permissions for protected users
-            for (const user of users) {
-                const isProtected = await accessService.isUserProtected(user.id);
-                // If user is protected, only admin can add/remove from groups
-                // The accessService.check already handles this via contextual restrictions
-                userPermissions[user.id] = {
-                    canAdd: canAddMembers && !isProtected,
-                    canRemove: canRemoveMembers && !isProtected
-                };
-            }
-
-            // For admin, all permissions are true
+            // Check if current user is admin (admins can modify all users)
             const userRole = await accessService.getUserRole(username);
-            if (userRole === 'admin') {
-                for (const user of users) {
+            const isAdmin = userRole === 'admin';
+
+            // Fetch users with their groups in a single query
+            const usersWithGroups = await directoryService.listUsersWithGroups();
+            allUsers = usersWithGroups;
+
+            // Check per-user permissions using already-fetched group data
+            for (const user of usersWithGroups) {
+                if (isAdmin) {
                     userPermissions[user.id] = { canAdd: true, canRemove: true };
+                } else {
+                    // Check if user is protected based on their groups
+                    const groupNames = user.groups.map((g) => g.displayName);
+                    const isProtected = accessService.isUserProtectedByGroups(groupNames);
+                    userPermissions[user.id] = {
+                        canAdd: canAddMembers && !isProtected,
+                        canRemove: canRemoveMembers && !isProtected
+                    };
                 }
             }
         }
@@ -179,23 +180,21 @@ export const actions: Actions = {
                 config.directory.type as DirectoryServiceType
             );
 
-            // Check permission
-            const canAddMembers = await accessService.check(
-                username,
-                Permission.USER_ADD_TO_GROUP,
-                EntityType.GROUP,
-                groupid
-            );
-
-            if (!canAddMembers) {
-                return fail(403, { error: m.group_add_user_no_permission() });
-            }
-
             const formData = await request.formData();
             const userId = formData.get('userId')?.toString();
 
             if (!userId) {
                 return fail(400, { error: m.validation_user_id_required() });
+            }
+            const canAddUser = await accessService.check(
+                username,
+                Permission.USER_ADD_TO_GROUP,
+                EntityType.USER,
+                userId
+            );
+
+            if (!canAddUser) {
+                return fail(403, { error: m.group_add_user_no_permission() });
             }
 
             const result = await directoryService.addUserToGroup(userId, groupid);
@@ -228,23 +227,21 @@ export const actions: Actions = {
                 config.directory.type as DirectoryServiceType
             );
 
-            // Check permission
-            const canRemoveMembers = await accessService.check(
-                username,
-                Permission.USER_REMOVE_FROM_GROUP,
-                EntityType.GROUP,
-                groupid
-            );
-
-            if (!canRemoveMembers) {
-                return fail(403, { error: m.group_remove_user_no_permission() });
-            }
-
             const formData = await request.formData();
             const userId = formData.get('userId')?.toString();
 
             if (!userId) {
                 return fail(400, { error: m.validation_user_id_required() });
+            }
+            const canRemoveUser = await accessService.check(
+                username,
+                Permission.USER_REMOVE_FROM_GROUP,
+                EntityType.USER,
+                userId
+            );
+
+            if (!canRemoveUser) {
+                return fail(403, { error: m.group_remove_user_no_permission() });
             }
 
             const result = await directoryService.removeUserFromGroup(userId, groupid);

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData, ActionData } from './$types';
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { formatDate } from '$lib/utils/validation';
 	import * as m from '$lib/paraglide/messages';
@@ -8,19 +9,13 @@
 	export let data: PageData;
 	export let form: ActionData;
 
-	// Get users not in this group (for adding)
-	function getAvailableUsers() {
-		if (!data.allUsers || !data.group?.members) return data.allUsers || [];
-		const memberIds = new Set(data.group.members.map(m => m.id));
-		return data.allUsers.filter(u => !memberIds.has(u.id));
-	}
-
 	// UI state
 	let showDeleteConfirm = false;
 	let isDeleting = false;
 	let isSubmittingMembership = false;
 
-	$: availableUsers = getAvailableUsers();
+	$: memberIds = new Set(data.group?.members?.map(m => m.id) || []);
+	$: availableUsers = (data.allUsers || []).filter(u => !memberIds.has(u.id));
 	$: hasMembers = data.group?.members && data.group.members.length > 0;
 </script>
 
@@ -210,9 +205,12 @@
 														action="{base}/groups/{data.group.id}?/removeUser"
 														use:enhance={() => {
 															isSubmittingMembership = true;
-															return async ({ update }) => {
+															return async ({ result, update }) => {
 																isSubmittingMembership = false;
 																await update();
+																if (result.type === 'success') {
+																	await invalidateAll();
+																}
 															};
 														}}
 														class="inline"
@@ -298,9 +296,12 @@
 													action="{base}/groups/{data.group.id}?/addUser"
 													use:enhance={() => {
 														isSubmittingMembership = true;
-														return async ({ update }) => {
+														return async ({ result, update }) => {
 															isSubmittingMembership = false;
 															await update();
+															if (result.type === 'success') {
+																await invalidateAll();
+															}
 														};
 													}}
 													class="inline"

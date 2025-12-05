@@ -22,7 +22,11 @@ const testConfig: LLDAPGraphQLConfig = {
 	type: 'lldap-graphql',
 	endpoint: process.env.LLDAP_ENDPOINT || 'http://lldap:17170/api/graphql',
 	user: 'admin',
-	password: 'admin1234'
+	password: 'admin1234',
+	// LDAP settings for password changes (LLDAP's GraphQL doesn't support password changes)
+	ldap_host: 'lldap',
+	ldap_port: 3890,
+	ldap_base_dn: 'dc=localhost,dc=test'
 };
 
 // Disable TLS certificate verification for tests (self-signed cert)
@@ -305,6 +309,11 @@ describe('LLDAPGraphQLService Functional Tests', () => {
 		it('should change password for another user', async () => {
 			const newPassword = 'NewSecurePassword123!';
 			const result = await service.changePassword(testUserId, newPassword);
+
+			// Log error for debugging if test fails
+			if (!result.success) {
+				console.error('Password change failed:', result.error);
+			}
 
 			expect(result.success).toBe(true);
 			expect(result.error).toBeUndefined();

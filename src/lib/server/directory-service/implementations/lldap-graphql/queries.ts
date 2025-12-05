@@ -91,3 +91,22 @@ export const GET_API_VERSION = `
     apiVersion
   }
 `;
+
+/**
+ * List users with their group memberships.
+ * Used to check user protection status without N+1 queries.
+ */
+export const LIST_USERS_WITH_GROUPS = `
+  query ListUsersWithGroups {
+    users {
+      id
+      email
+      displayName
+      groups {
+        id
+        displayName
+        uuid
+      }
+    }
+  }
+`;
