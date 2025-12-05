@@ -22,3 +22,4 @@ directory:
     password: admin1234
     ldap_host: lldap
     ldap_port: 3890
+    ldap_base_dn: dc=localhost,dc=test

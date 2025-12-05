@@ -10,6 +10,7 @@ export interface LLDAPGraphQLConfig {
 	password: string;
 	ldap_host: string;
 	ldap_port: number;
+	ldap_base_dn?: string;
 }
 
 // Future: Add other config types
@@ -26,7 +27,8 @@ export function createLLDAPConfig(
 	user: string,
 	password: string,
 	ldap_host = 'lldap',
-	ldap_port = 3890
+	ldap_port = 3890,
+	ldap_base_dn?: string
 ): LLDAPGraphQLConfig {
 	return {
 		type: 'lldap-graphql',
@@ -34,6 +36,7 @@ export function createLLDAPConfig(
 		user,
 		password,
 		ldap_host,
-		ldap_port
+		ldap_port,
+		ldap_base_dn
 	};
 }
