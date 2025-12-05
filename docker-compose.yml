@@ -54,7 +54,7 @@ services:
   #     retries: 3
 
   lldap:
-    image: 'ghcr.io/asalimonov/lldap:latest-debian'
+    image: 'docker.io/lldap/lldap:v0.6.2-debian'
     networks:
       authelia:
         aliases:

@@ -1,5 +1,9 @@
-FROM node:25-alpine AS builder
-RUN apk add --no-cache python3 make g++
+FROM node:25-slim AS builder
+
+# Install build dependencies for native modules (sqlite3, ldapts)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -11,11 +15,13 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Production dependencies stage - clean install of prod deps only
-FROM node:25-alpine AS prod-deps
+# Production dependencies stage - use debian-slim for native module compilation
+FROM node:25-slim AS prod-deps
 
 # Install build dependencies for native modules (sqlite3, ldapts)
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY package*.json ./
@@ -23,7 +29,7 @@ RUN npm ci --omit=dev && \
     npm cache clean --force && \
     rm -rf /root/.npm
 
-# Production stage - minimal Alpine with Node.js
+# Production stage - minimal Alpine with Node.js (no compilation needed here)
 FROM alpine:3.22
 
 RUN apk add --no-cache nodejs curl

@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getDirectoryServiceAsync, type Group } from '$lib/server/directory-service';
+import { getDirectoryServiceAsync } from '$lib/server/directory-service';
 import { getAccessService, Permission, EntityType, type DirectoryServiceType } from '$lib/server/access-service';
 import { getConfigAsync } from '$lib/server/config';
 import * as m from '$lib/paraglide/messages';
@@ -15,16 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
             config.directory.type as DirectoryServiceType
         );
 
-        const groupSummaries = await directoryService.listGroups();
-
-        // Fetch full details for each group to get members
-        const groups: Group[] = [];
-        for (const summary of groupSummaries) {
-            const details = await directoryService.getGroupDetails(summary.id);
-            if (details) {
-                groups.push(details);
-            }
-        }
+        const groups = await directoryService.listGroups();
 
         // Sort groups by displayName
         groups.sort((a, b) => a.displayName.localeCompare(b.displayName));

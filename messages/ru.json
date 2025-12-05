@@ -150,7 +150,7 @@
   "group_id_required": "Требуется идентификатор группы",
   "group_membership_no_permission": "У вас нет прав на управление членством в группах",
   "group_not_found": "Группа \"{groupId}\" не найдена",
-  "group_add_button": "+ Новая группа",
+  "group_add_button": "Новая группа",
   "group_add_user": "Добавить",
   "group_add_user_error": "Не удалось добавить пользователя в группу: {error}",
   "group_add_user_failed": "Не удалось добавить пользователя в группу",
