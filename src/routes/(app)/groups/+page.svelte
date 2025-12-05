@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { base } from '$app/paths';
-	import { formatDate } from '$lib/utils/validation';
 	import * as m from '$lib/paraglide/messages';
 
 	export let data: PageData;
@@ -46,13 +45,6 @@
 									{m.groups_table_name()}
 								</th>
 								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									{m.groups_table_members()}
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									{m.groups_table_creation_date()}
-								</th>
-								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-									
 								</th>
 							</tr>
 						</thead>
@@ -64,38 +56,7 @@
 											{group.displayName}
 										</a>
 									</td>
-									<td class="px-6 py-4 text-sm text-gray-900 dark:text-white">
-										{#if group.members && group.members.length > 0}
-											<div class="space-y-1">
-												<div class="font-medium">
-													{group.members.length === 1
-														? m.groups_member_count({ count: group.members.length })
-														: m.groups_member_count_plural({ count: group.members.length })}
-												</div>
-												<details class="cursor-pointer">
-													<summary class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-														{m.groups_show_members()}
-													</summary>
-													<div class="mt-2 flex flex-wrap gap-1">
-														{#each group.members as member}
-															<a
-																href="{base}/users/{member.id}"
-																class="px-2 py-1 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 rounded hover:bg-blue-100 hover:text-blue-800 dark:hover:bg-blue-900 dark:hover:text-blue-200 transition-colors"
-															>
-																{member.id}
-															</a>
-														{/each}
-													</div>
-												</details>
-											</div>
-										{:else}
-											<span class="text-gray-500">{m.groups_no_members()}</span>
-										{/if}
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-										{formatDate(group.creationDate?.toISOString())}
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm">
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-right">
 										<a
 											href="{base}/groups/{group.id}"
 											class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors inline-block"

@@ -54,24 +54,15 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Set latest tag for default branch
-            type=raw,value=latest,enable={{is_default_branch}}
-            # Tag with branch name
-            type=ref,event=branch
-            # Tag with PR number
             type=ref,event=pr
-            # Tag with git tag
-            type=ref,event=tag
-            # Tag with version (without 'v' prefix)
-            type=semver,pattern={{version}}
-            # Tag with major.minor version
-            type=semver,pattern={{major}}.{{minor}}
-            # Tag with major version
-            type=semver,pattern={{major}}
-            # Tag with sha
             type=sha,prefix=sha-,format=short
-            # Tag with date
-            type=raw,value={{date 'YYYYMMDD'}}-{{sha}},enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=raw,value=latest,enable={{ is_default_branch }}
+            type=raw,value=stable,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value={{ date 'YYYY-MM-DD' }},enable={{ is_default_branch }}
           labels: |
             org.opencontainers.image.title=Authelia Admin
             org.opencontainers.image.description=Web-based administration interface for Authelia

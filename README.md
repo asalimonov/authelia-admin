@@ -1,6 +1,6 @@
 # Authelia Admin Control Panel
 
-A web-based administration interface for managing Authelia authentication server with LLDAP
+A web-based administration interface for managing Authelia authentication server with LLDAP.
 
 ![image](https://raw.githubusercontent.com/asalimonov/authelia-admin/refs/heads/main/public/authelia-admin.gif)
 
@@ -9,31 +9,32 @@ A web-based administration interface for managing Authelia authentication server
 - Management of users and groups in LLDAP
 - View and manage TOTP configurations
 - View TOTP history
-- Managemenent of banned users and IPs
+- Management of banned users and IPs
 - Dedicated role for management of regular users (user_manager)
-- Dedicated role for  (user_manager)
-- Roles: admin, user_manager (management of users), passowrd_manager (can change passwords). No access for regular users.
+- Dedicated role for management of passwords of regular users (password_manager)
+- Internationalization
+- Ability to add another directory system
 
 ### Not yet implemented
 
 - Management of attributes of users and groups
-- Management of users and groups via LDAP protocol
 - PostgreSQL engine for Authelia
-- Browse and management of users in Authelia file provider
+- Browsing and management of users in Authelia file provider
 
 ## Configuration
 
-Configuration can be provided via YAML file or environment variables. Environment variables specific fo the application use the `AAD_` prefix and override YAML values.
-Don't forget to configure load balancer, Authelia Admin CP should be on https://{{AAD_AUTHELIA_DOMAIN}}/auth-admin/
+Configuration can be provided via YAML file or environment variables. Environment variables specific to the application use the `AAD_` prefix and override YAML values.
+
+Don't forget to configure your load balancer. Authelia Admin CP should be accessible at `https://{{AAD_AUTHELIA_DOMAIN}}/auth-admin/`.
 
 ### Environment Variables
 
-### Mandatory settings for non development environment
+### Mandatory settings for non-development environment
 
-You need to specify ony the following environment variables for minial instance:
+You need to specify only the following environment variables for a minimal instance:
 
-- `AAD_AUTHELIA_DOMAIN`,  domain of authelia server for authentication of requests, example**: `auth.yourdomain.com`
-- `TRUSTED_ORIGINS` for Node applicatios, example: `https://auth.yourdomain.com`
+- `AAD_AUTHELIA_DOMAIN` - Domain of Authelia server for authentication of requests, e.g., `auth.yourdomain.com`
+- `TRUSTED_ORIGINS` - Trusted origins for CSRF protection, e.g., `https://auth.yourdomain.com`
 
 #### Application Configuration
 
@@ -113,7 +114,7 @@ docker run -p 9093:9093 \
   ghcr.io/asalimonov/authelia-admin:latest
 ```
 
-Or using environment variables instead of config file:
+Alternatively, using environment variables instead of a config file:
 
 ```bash
 docker run -p 9093:9093 \
@@ -139,14 +140,14 @@ See `docker-compose.yml` for a complete example with Authelia, LLDAP, and Traefi
 # Install dependencies and build docker image
 make build-dev
 
-# Run Authelia, LLDAP, Traefik in docker compose in the second terminal
+# Run Authelia, LLDAP, and Traefik via Docker Compose
 make run-docker-compose
 
-# Run Docker with authelia-admin with hot-reload
+# In a second terminal, run Docker with authelia-admin with hot-reload
 make run-dev
 ```
 
-Use `admin` user with `admin1234` password. Confirmation code is `./test-data/authelia/notification.txt` file.
+Use `admin` user with `admin1234` password. The confirmation code can be found in the `./test-data/authelia/notification.txt` file.
 
 ## Requirements
 
