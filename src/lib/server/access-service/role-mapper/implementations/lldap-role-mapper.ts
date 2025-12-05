@@ -12,7 +12,13 @@ export const LLDAP_DEFAULT_CONFIG: RoleMapperConfig = {
         [Role.USER_MANAGER]: ['authelia_user_manager'],
         [Role.PASSWORD_MANAGER]: ['lldap_password_manager'],
     },
-    protectedGroups: ['lldap_admin', 'lldap_password_manager', 'authelia_user_manager'],
+    // Users in these groups are protected - only admin can modify their membership, info, or password
+    protectedGroups: [
+        'lldap_admin',
+        'lldap_password_manager',
+        'lldap_strict_readonly',
+        'authelia_user_manager',
+    ],
 };
 
 /**

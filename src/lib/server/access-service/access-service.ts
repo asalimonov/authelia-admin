@@ -55,6 +55,12 @@ export interface IAccessService {
      * Check if a user is in any protected group
      */
     isUserProtected(userId: string): Promise<boolean>;
+
+    /**
+     * Check if a user is protected based on provided group names.
+     * Use this when you already have the user's groups to avoid additional queries.
+     */
+    isUserProtectedByGroups(groupNames: string[]): boolean;
 }
 
 /**
@@ -195,41 +201,63 @@ export class AccessService implements IAccessService {
 
     /**
      * Group membership restrictions:
-     * - user_manager cannot add/remove users to/from protected groups
+     * - Non-admin users cannot add/remove protected users to/from groups
+     * - Non-admin users cannot add/remove users to/from protected groups
+     *
+     * When entityType is USER, entityId is the target user ID - check if user is protected
+     * When entityType is GROUP, entityId is the target group ID - check if group is protected
      */
     private async checkGroupMembershipRestriction(
         permission: Permission,
         entityType: EntityType,
         entityId?: string
     ): Promise<AccessCheckResult> {
-        if (entityType !== EntityType.GROUP || !entityId) {
+        if (!entityId) {
             return {
                 allowed: false,
-                reason: m.access_group_id_required(),
+                reason: entityType === EntityType.USER
+                    ? m.access_target_user_required_modification()
+                    : m.access_group_id_required(),
             };
         }
 
-        // Get group details to check if it's protected
-        const group = await this.directoryService.getGroupDetails(entityId);
-        if (!group) {
-            return {
-                allowed: false,
-                reason: m.group_not_found({ groupId: entityId }),
-            };
+        // When checking against a USER, verify the target user is not protected
+        if (entityType === EntityType.USER) {
+            const isTargetProtected = await this.isUserProtected(entityId);
+            if (isTargetProtected) {
+                return {
+                    allowed: false,
+                    reason: m.access_cannot_modify_protected_user({ userId: entityId }),
+                    requiredRole: Role.ADMIN,
+                };
+            }
+            return { allowed: true };
         }
 
-        if (this.isProtectedGroup(group.displayName)) {
-            const reason = permission === Permission.USER_ADD_TO_GROUP
-                ? m.access_cannot_add_to_protected_group({ groupName: group.displayName })
-                : m.access_cannot_remove_from_protected_group({ groupName: group.displayName });
-            return {
-                allowed: false,
-                reason,
-                requiredRole: Role.ADMIN,
-            };
+        // When checking against a GROUP, verify the target group is not protected
+        if (entityType === EntityType.GROUP) {
+            const group = await this.directoryService.getGroupDetails(entityId);
+            if (!group) {
+                return {
+                    allowed: false,
+                    reason: m.group_not_found({ groupId: entityId }),
+                };
+            }
+
+            if (this.isProtectedGroup(group.displayName)) {
+                const reason = permission === Permission.USER_ADD_TO_GROUP
+                    ? m.access_cannot_add_to_protected_group({ groupName: group.displayName })
+                    : m.access_cannot_remove_from_protected_group({ groupName: group.displayName });
+                return {
+                    allowed: false,
+                    reason,
+                    requiredRole: Role.ADMIN,
+                };
+            }
+            return { allowed: true };
         }
 
-        return { allowed: true };
+        return { allowed: false, reason: 'Invalid entity type for membership operation' };
     }
 
     /**
@@ -320,6 +348,10 @@ export class AccessService implements IAccessService {
         }
 
         return user.groups.some((g) => this.isProtectedGroup(g.displayName));
+    }
+
+    isUserProtectedByGroups(groupNames: string[]): boolean {
+        return groupNames.some((g) => this.isProtectedGroup(g));
     }
 
     /**

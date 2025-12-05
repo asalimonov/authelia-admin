@@ -64,6 +64,7 @@ services:
     volumes:
       - './test-configs/lldap/bootstrap:/bootstrap'
       - './.test-data/lldap:/data'
+      - './test-configs/lldap/lldap_config.toml:/data/lldap_config.toml'
     ports:
       - "3890:3890" # For LDAP
       - "17170:17170" # For the web front-end

@@ -103,6 +103,10 @@ describe('AccessService Functional Tests', () => {
             expect(accessService.isProtectedGroup('lldap_password_manager')).toBe(true);
         });
 
+        it('should identify lldap_strict_readonly as protected', () => {
+            expect(accessService.isProtectedGroup('lldap_strict_readonly')).toBe(true);
+        });
+
         it('should identify authelia_user_manager as protected', () => {
             expect(accessService.isProtectedGroup('authelia_user_manager')).toBe(true);
         });
@@ -382,6 +386,71 @@ describe('AccessService Functional Tests', () => {
                     protectedGroupId
                 )
             ).toBe(true);
+        });
+
+        // Tests for protected users (EntityType.USER) - checking if target user is protected
+        it('should deny user_manager to add protected user to regular group', async () => {
+            // usermanager cannot add admin (protected user) to cloud (regular group)
+            const result = await accessService.check(
+                'usermanager',
+                Permission.USER_ADD_TO_GROUP,
+                EntityType.USER,
+                'admin' // admin is a protected user (member of lldap_admin)
+            );
+            expect(result).toBe(false);
+        });
+
+        it('should deny user_manager to remove protected user from any group', async () => {
+            // usermanager cannot remove admin (protected user) from any group
+            const result = await accessService.check(
+                'usermanager',
+                Permission.USER_REMOVE_FROM_GROUP,
+                EntityType.USER,
+                'admin' // admin is a protected user
+            );
+            expect(result).toBe(false);
+        });
+
+        it('should allow user_manager to add non-protected user to regular group', async () => {
+            // usermanager can add test (non-protected user) to any group
+            const result = await accessService.check(
+                'usermanager',
+                Permission.USER_ADD_TO_GROUP,
+                EntityType.USER,
+                'test' // test is not a protected user
+            );
+            expect(result).toBe(true);
+        });
+
+        it('should allow user_manager to remove non-protected user from any group', async () => {
+            // usermanager can remove test (non-protected user) from any group
+            const result = await accessService.check(
+                'usermanager',
+                Permission.USER_REMOVE_FROM_GROUP,
+                EntityType.USER,
+                'test' // test is not a protected user
+            );
+            expect(result).toBe(true);
+        });
+
+        it('should allow admin to add protected user to any group', async () => {
+            const result = await accessService.check(
+                'admin',
+                Permission.USER_ADD_TO_GROUP,
+                EntityType.USER,
+                'admin' // admin can modify any user, including protected ones
+            );
+            expect(result).toBe(true);
+        });
+
+        it('should allow admin to remove protected user from any group', async () => {
+            const result = await accessService.check(
+                'admin',
+                Permission.USER_REMOVE_FROM_GROUP,
+                EntityType.USER,
+                'admin' // admin can modify any user, including protected ones
+            );
+            expect(result).toBe(true);
         });
     });
 

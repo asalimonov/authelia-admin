@@ -2,6 +2,7 @@ import type {
 	IDirectoryService,
 	User,
 	UserSummary,
+	UserWithGroups,
 	Group,
 	GroupSummary,
 	CreateUserInput,
@@ -20,6 +21,7 @@ import { Client as LdapClient, Attribute, Change } from 'ldapts';
 import type {
 	LLDAPUser,
 	LLDAPUserSummary,
+	LLDAPUserWithGroups,
 	LLDAPGroup,
 	LLDAPGroupSummary,
 	LLDAPAttributeSchema
@@ -27,6 +29,10 @@ import type {
 
 interface UsersResponse {
 	users: LLDAPUserSummary[];
+}
+
+interface UsersWithGroupsResponse {
+	users: LLDAPUserWithGroups[];
 }
 
 interface UserResponse {
@@ -200,6 +206,11 @@ export class LLDAPGraphQLService implements IDirectoryService {
 	async listUsers(): Promise<UserSummary[]> {
 		const result = await this.client.query<UsersResponse>(queries.LIST_USERS);
 		return result.users.map(mappers.mapUserSummary);
+	}
+
+	async listUsersWithGroups(): Promise<UserWithGroups[]> {
+		const result = await this.client.query<UsersWithGroupsResponse>(queries.LIST_USERS_WITH_GROUPS);
+		return result.users.map(mappers.mapUserWithGroups);
 	}
 
 	async getUserDetails(userId: string): Promise<User | null> {

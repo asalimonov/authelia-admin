@@ -32,6 +32,14 @@ export interface UserSummary {
 	displayName: string;
 }
 
+/**
+ * User summary with group memberships.
+ * Used for bulk operations to avoid N+1 queries when checking user protection status.
+ */
+export interface UserWithGroups extends UserSummary {
+	groups: GroupSummary[];
+}
+
 export interface Group {
 	id: string; // Unique identifier (uuid for LLDAP, string ID for other implementations)
 	displayName: string;
@@ -93,6 +101,7 @@ export interface IDirectoryService {
 	updateUser(input: UpdateUserInput): Promise<OperationResult>;
 	deleteUser(userId: string): Promise<OperationResult>;
 	listUsers(): Promise<UserSummary[]>;
+	listUsersWithGroups(): Promise<UserWithGroups[]>;
 	getUserDetails(userId: string): Promise<User | null>;
 	getUserByEmail(email: string): Promise<User | null>;
 	changePassword(userId: string, newPassword: string): Promise<OperationResult>;
