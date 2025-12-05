@@ -63,6 +63,7 @@ You need to specify only the following environment variables for a minimal insta
 | `AAD_DIRECTORY_LLDAP_GRAPHQL_PASSWORD` | LLDAP admin password | (required) |
 | `AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_HOST` | LDAP host for password changes | `lldap` |
 | `AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_PORT` | LDAP port for password changes | `3890` |
+| `AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_BASE_DN` | LDAP base DN for user operations | (required for password changes) |
 
 #### Security
 
@@ -99,6 +100,8 @@ directory:
     password: admin1234
     ldap_host: lldap
     ldap_port: 3890
+    # LDAP base DN (required for password changes)
+    ldap_base_dn: dc=example,dc=com
 ```
 
 ### Docker

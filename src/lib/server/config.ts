@@ -25,6 +25,7 @@ export interface LLDAPGraphQLConfigFields {
 	password: string;
 	ldap_host: string;
 	ldap_port: number;
+	ldap_base_dn?: string;
 }
 
 export interface DirectoryConfig {
@@ -198,7 +199,11 @@ function parseLLDAPGraphQLConfig(config: unknown): LLDAPGraphQLConfigFields {
 			? Number(cfg.ldap_port)
 			: DEFAULT_LLDAP_GRAPHQL_CONFIG.ldap_port);
 
-	return { endpoint, user, password, ldap_host, ldap_port };
+	// ldap_base_dn is optional with no default - must be explicitly configured
+	const ldap_base_dn = process.env.AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_BASE_DN ||
+		(cfg.ldap_base_dn ? substituteEnvVars(String(cfg.ldap_base_dn)) : undefined);
+
+	return { endpoint, user, password, ldap_host, ldap_port, ldap_base_dn };
 }
 
 function parseAllowedUsers(users: unknown): string[] {

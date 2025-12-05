@@ -124,23 +124,18 @@ export class LLDAPGraphQLService implements IDirectoryService {
 	}
 
 	/**
-	 * Derive base DN from the GraphQL endpoint hostname.
-	 * For LLDAP, this is typically dc=localhost,dc=test or similar.
-	 * We'll query the server to get it from the first user.
+	 * Get the LDAP base DN from configuration.
+	 * Throws an error if not configured, as there is no safe default.
 	 */
-	private async getBaseDn(): Promise<string> {
-		// Try to get the base DN from an existing user's DN
-		const users = await this.listUsers();
-		if (users.length > 0) {
-			const user = await this.getUserDetails(users[0].id);
-			if (user) {
-				// The user's UUID format from LLDAP doesn't help us get the base DN
-				// We need to use a known convention for LLDAP: dc=localhost,dc=test
-				// This should be configurable, but for now we'll use a default
-			}
+	private getBaseDn(): string {
+		const baseDn = this.config.ldap_base_dn;
+		if (!baseDn) {
+			throw new Error(
+				'LDAP base DN is not configured. ' +
+				'Set ldap_base_dn in config.yml or AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_BASE_DN environment variable.'
+			);
 		}
-		// Default base DN - this should ideally be configurable
-		return process.env.LLDAP_BASE_DN || 'dc=localhost,dc=test';
+		return baseDn;
 	}
 
 	/**
@@ -149,7 +144,7 @@ export class LLDAPGraphQLService implements IDirectoryService {
 	 */
 	private async createLdapConnection(): Promise<LdapClient> {
 		const ldapUrl = this.getLdapUrl();
-		const baseDn = await this.getBaseDn();
+		const baseDn = this.getBaseDn();
 
 		const ldapClient = new LdapClient({ url: ldapUrl });
 
@@ -236,7 +231,7 @@ export class LLDAPGraphQLService implements IDirectoryService {
 			// LLDAP's GraphQL API doesn't support password changes,
 			// so we use LDAP protocol directly
 			ldapClient = await this.createLdapConnection();
-			const baseDn = await this.getBaseDn();
+			const baseDn = this.getBaseDn();
 
 			// LLDAP uses uid=username,ou=people,dc=... format
 			const userDn = `uid=${userId},ou=people,${baseDn}`;
