@@ -4,7 +4,10 @@ import { loadConfig, type AppConfig } from '$lib/server/config';
 import { getDirectoryServiceAsync } from '$lib/server/directory-service';
 import { getAccessService, type DirectoryServiceType } from '$lib/server/access-service';
 import { paraglideMiddleware } from '$lib/paraglide/server';
+import { createLogger } from '$lib/server/logger';
 import * as m from '$lib/paraglide/messages';
+
+const log = createLogger('auth');
 
 // Config will be loaded on first request
 let configLoaded = false;
@@ -45,6 +48,7 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	event.locals.user = undefined;
 
 	if (!authSessionCookie) {
+		log.debug("Authentication cookie was not found")
 		error(403, m.auth_required());
 	}
 
@@ -57,29 +61,33 @@ const authHandle: Handle = async ({ event, resolve }) => {
 			}
 		});
 
+		log.debug("Authelia response:", authResponse)
+
 		if (authResponse.status !== 200) {
 			error(403, m.auth_required());
 		}
 
 		const authData = await authResponse.json();
 
+		log.debug("Authelia response DATA:", authData)
+
 		// Check if response has expected structure
 		if (authData.status !== 'OK' || !authData.data || !authData.data.username) {
-			console.error('Invalid auth data structure:', authData);
+			log.error('Invalid auth data structure:', authData);
 			error(403, m.auth_failed());
 		}
 
 		const username = authData.data.username;
 		if (authelia.allowed_users != null && authelia.allowed_users.length > 0
 			&& !authelia.allowed_users.includes(username)) {
-			console.warn(`User ${username} not in allowed list`);
+			log.warn(`User ${username} not in allowed list`);
 			error(403, m.common_access_denied());
 		}
 
 		// Check authentication level
 		const authLevel = authData.data.authentication_level;
 		if (typeof authLevel !== 'number' || authLevel < authelia.min_auth_level) {
-			console.warn(`User ${username} has insufficient authentication level: ${authLevel}`);
+			log.warn(`User ${username} has insufficient authentication level: ${authLevel}`);
 			error(403, m.auth_level_insufficient());
 		}
 
@@ -87,6 +95,8 @@ const authHandle: Handle = async ({ event, resolve }) => {
 			username,
 			authenticationLevel: authData.data.authentication_level
 		};
+
+		log.info("Got user's details:", username, authData.data.authentication_level)
 
 		// Check if user has a valid role (admin, user_manager, or password_manager)
 		// Users without a role cannot access the application
@@ -99,26 +109,28 @@ const authHandle: Handle = async ({ event, resolve }) => {
 
 			const role = await accessService.getUserRole(username);
 			if (role === null) {
-				console.warn(`User ${username} does not have a valid role to access this application`);
+				log.warn(`User ${username} does not have a valid role to access this application`);
 				error(403, m.app_access_denied());
 			}
+			log.debug(`User ${username} authenticated with role ${role}`);
 		} catch (roleErr) {
+			log.error('Role check failed:', roleErr);
 			// Re-throw SvelteKit errors
 			if (roleErr && typeof roleErr === 'object' && 'status' in roleErr) {
 				throw roleErr;
 			}
-			console.error('Role check failed:', roleErr);
 			error(500, m.auth_check_failed());
 		}
 	} catch (err) {
+		log.error('Authentication check failed:', err);
 		// Re-throw SvelteKit errors
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;
 		}
-		console.error('Authentication check failed:', err);
 		error(403, m.auth_failed());
 	}
 
+	log.debug("Authentication succeded:", event.locals.user)
 	// Continue with the request - user is authenticated and has a valid role
 	return resolve(event);
 };

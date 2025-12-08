@@ -5,10 +5,14 @@
  * Environment variables use the AAD_ prefix (Authelia Admin):
  * - AAD_AUTHELIA_DOMAIN, AAD_AUTHELIA_COOKIE_NAME, etc.
  * - AAD_DIRECTORY_TYPE, AAD_DIRECTORY_LLDAP_GRAPHQL_ENDPOINT, etc.
+ * - AAD_LOGLEVEL (DEBUG, INFO, WARN, ERROR)
  */
 
 import { promises as fs } from 'node:fs';
 import { parse } from 'yaml';
+import { setLogLevel, createLogger } from './logger';
+
+const log = createLogger('config');
 
 // === Configuration Interfaces ===
 
@@ -36,6 +40,7 @@ export interface DirectoryConfig {
 export interface AppConfig {
 	authelia: AutheliaConfig;
 	directory: DirectoryConfig;
+	logging_level: string;
 }
 
 // === Default Values ===
@@ -83,16 +88,21 @@ export async function loadConfig(
 			const content = await fs.readFile(configPath, 'utf-8');
 			const parsed = parse(content);
 
+			// Parse logging level first so subsequent logs use the correct level
+			const loggingLevel = parseLoggingLevel(parsed?.logging_level);
+			setLogLevel(loggingLevel);
+
 			configInstance = {
 				authelia: parseAutheliaConfig(parsed?.authelia),
-				directory: parseDirectoryConfig(parsed?.directory)
+				directory: parseDirectoryConfig(parsed?.directory),
+				logging_level: loggingLevel
 			};
 
-			console.log(`Configuration loaded from ${configPath}`);
+			log.info(`Configuration loaded from ${configPath}`);
 			return configInstance;
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-				console.warn(
+				log.warn(
 					`Configuration file not found at ${configPath}, using defaults and environment variables`
 				);
 				configInstance = loadFromEnvironment();
@@ -222,10 +232,33 @@ function parseAllowedUsers(users: unknown): string[] {
 // === Environment Variable Fallbacks ===
 
 function loadFromEnvironment(): AppConfig {
+	const loggingLevel = parseLoggingLevel(undefined);
+	setLogLevel(loggingLevel);
+
 	return {
 		authelia: parseAutheliaConfig({}),
-		directory: parseDirectoryConfig({})
+		directory: parseDirectoryConfig({}),
+		logging_level: loggingLevel
 	};
+}
+
+/**
+ * Parse logging level from config or environment variable
+ * Environment variable AAD_LOGLEVEL takes precedence
+ */
+function parseLoggingLevel(configValue: unknown): string {
+	// Environment variable takes precedence
+	if (process.env.AAD_LOGLEVEL) {
+		return process.env.AAD_LOGLEVEL.toUpperCase();
+	}
+
+	// Then config file value
+	if (typeof configValue === 'string') {
+		return configValue.toUpperCase();
+	}
+
+	// Default to WARN
+	return 'WARN';
 }
 
 function substituteEnvVars(value: string): string {
