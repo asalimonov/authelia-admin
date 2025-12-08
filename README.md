@@ -43,6 +43,7 @@ You need to specify only the following environment variables for a minimal insta
 | `PORT` | Server port | `9093` |
 | `HOST` | Server host | `0.0.0.0` |
 | `AAD_CONFIG_PATH` | Path to config.yml | `/opt/authelia-admin/config.yml` |
+| `AAD_LOGLEVEL` | Logging level | `WARN` |
 
 #### Authelia Integration
 
@@ -77,6 +78,10 @@ You need to specify only the following environment variables for a minimal insta
 Example of `config.yml` for authelia-admin:
 
 ```yaml
+# Logging level (DEBUG, INFO, WARN, ERROR). Default: WARN
+# Can be overridden by AAD_LOGLEVEL environment variable
+logging_level: WARN
+
 authelia:
   # Domain where Authelia is accessible
   domain: auth.localhost.test
@@ -113,6 +118,7 @@ docker run -p 9093:9093 \
   -v /path/to/authelia/config:/config \
   -v /path/to/authelia/data:/data \
   -v /path/to/authelia-admin/config.yml:/opt/authelia-admin/config.yml:ro \
+  -e AAD_LOGLEVEL=DEBUG \
   -e TRUSTED_ORIGINS=https://auth.yourdomain.com \
   ghcr.io/asalimonov/authelia-admin:latest
 ```
@@ -123,6 +129,7 @@ Alternatively, using environment variables instead of a config file:
 docker run -p 9093:9093 \
   -v /path/to/authelia/config:/config \
   -v /path/to/authelia/data:/data \
+  -e AAD_LOGLEVEL=DEBUG \
   -e AAD_AUTHELIA_DOMAIN=auth.yourdomain.com \
   -e AAD_DIRECTORY_LLDAP_GRAPHQL_ENDPOINT=http://lldap:17170/api/graphql \
   -e AAD_DIRECTORY_LLDAP_GRAPHQL_USER=admin \

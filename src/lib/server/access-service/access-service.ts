@@ -2,7 +2,10 @@ import type { IDirectoryService } from '../directory-service';
 import { Role, Permission, EntityType, RolePermissions } from './types';
 import type { AccessCheckResult, UserAccessContext } from './types';
 import type { IRoleMapper } from './role-mapper';
+import { createLogger } from '../logger';
 import * as m from '$lib/paraglide/messages';
+
+const log = createLogger('access-service');
 
 export interface IAccessService {
     /**
@@ -91,9 +94,12 @@ export class AccessService implements IAccessService {
         entityType: EntityType,
         entityId?: string
     ): Promise<AccessCheckResult> {
+        log.debug(`Access check: user=${userId}, permission=${permission}, entityType=${entityType}, entityId=${entityId}`);
+
         // 1. Check if user is authenticated (exists in directory)
         const user = await this.directoryService.getUserDetails(userId);
         if (!user) {
+            log.debug(`Access denied: user ${userId} not found`);
             return {
                 allowed: false,
                 reason: m.access_user_not_found({ userId }),
@@ -103,6 +109,7 @@ export class AccessService implements IAccessService {
         // 2. Check if user is in the 'disabled' group
         const groups = user.groups.map((g) => g.displayName);
         if (this.isUserDisabled(groups)) {
+            log.debug(`Access denied: user ${userId} is disabled`);
             return {
                 allowed: false,
                 reason: m.access_user_disabled({ userId }),
@@ -113,6 +120,7 @@ export class AccessService implements IAccessService {
 
         // 3. Check if user has a valid role (only admin, user_manager, password_manager can access)
         if (context.role === null) {
+            log.debug(`Access denied: user ${userId} has no valid role`);
             return {
                 allowed: false,
                 reason: m.access_no_valid_role({ userId }),
@@ -122,6 +130,7 @@ export class AccessService implements IAccessService {
 
         // 4. Check if user has the base permission
         if (!context.permissions.includes(permission)) {
+            log.debug(`Access denied: user ${userId} lacks permission ${permission}`);
             return {
                 allowed: false,
                 reason: m.access_permission_denied({ permission, role: context.role ?? '' }),
@@ -131,6 +140,7 @@ export class AccessService implements IAccessService {
 
         // 5. Admin bypasses all contextual restrictions
         if (context.role === Role.ADMIN) {
+            log.debug(`Access granted: user ${userId} is admin`);
             return { allowed: true };
         }
 
