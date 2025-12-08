@@ -38,7 +38,7 @@
     "@inlang/paraglide-js": "^2.5.0",
     "cross-fetch": "^4.1.0",
     "graphql": "^16.11.0",
-    "ldapts": "^8.0.9",
+    "ldapts": "^8.0.14",
     "sqlite3": "^5.1.7",
     "yaml": "^2.8.1"
   }
