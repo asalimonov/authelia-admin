@@ -27,6 +27,13 @@ Configuration can be provided via YAML file or environment variables. Environmen
 
 Don't forget to configure your load balancer. Authelia Admin CP should be accessible at `https://{{AAD_AUTHELIA_DOMAIN}}/auth-admin/`.
 
+Authelia Admin implements concept of protected users. **Protected users** are users which belong to the following groups: lldap_admin, lldap_password_manager, lldap_strict_readonly, authelia_user_manager. Only users with membership in lldap_admin can do anything with other protected users. Protected users are implemented to prevent access rights escalation.
+
+Add your users of Authelia Admin in the following groups:
+- lldap_password_manager - can list users, groups and change password of not protected users
+- authelia_user_manager - lldap_password_manager access rights + can create, edit and delete users, can change memeberhip and password of non protected users
+- lldap_admin - full access rights
+
 ### Environment Variables
 
 ### Mandatory settings for non-development environment
