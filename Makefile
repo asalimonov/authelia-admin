@@ -146,7 +146,7 @@ test-e2e: build ## Full E2E: build, start stack, run tests, tear down (SQLite + 
 		echo "PostgreSQL stack startup failed"; \
 	fi; \
 	$(MAKE) test-e2e-pg-down; \
-	rm -rf ./.test-data/lldap; \
+	rm -rf ./.test-data/lldap ./.test-data/authelia; \
 	if [ $$SQLITE_EXIT -ne 0 ] || [ $$PG_EXIT -ne 0 ]; then \
 		echo "E2E tests failed: SQLite=$$SQLITE_EXIT, PostgreSQL=$$PG_EXIT"; \
 		exit 1; \
