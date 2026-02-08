@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import { parse } from 'yaml';
 import sqlite3 from 'sqlite3';
+import pg from 'pg';
 import { promisify } from 'node:util';
 import { createLogger } from './logger';
 
@@ -298,6 +299,213 @@ class SQLiteAdapter implements DatabaseAdapter {
 
     async close(): Promise<void> {
         await this.dbClose();
+    }
+}
+
+class PostgreSQLAdapter implements DatabaseAdapter {
+    private pool: pg.Pool;
+
+    private constructor(pool: pg.Pool) {
+        this.pool = pool;
+    }
+
+    static async create(config: PostgresConfig): Promise<PostgreSQLAdapter> {
+        const pool = new pg.Pool({
+            host: config.host,
+            port: config.port,
+            database: config.database,
+            user: config.username,
+            password: config.password,
+        });
+
+        if (config.schema && config.schema !== 'public') {
+            pool.on('connect', (client) => {
+                client.query(`SET search_path TO ${pg.Client.prototype.escapeIdentifier(config.schema!)}`);
+            });
+        }
+
+        // Verify connection
+        const client = await pool.connect();
+        client.release();
+
+        log.debug(`PostgreSQL pool created: ${config.host}:${config.port}/${config.database}`);
+        return new PostgreSQLAdapter(pool);
+    }
+
+    async getTOTPConfigurations(): Promise<TOTPConfiguration[]> {
+        const query = `
+            SELECT
+                id,
+                created_at,
+                last_used_at,
+                username,
+                issuer,
+                algorithm,
+                digits,
+                period,
+                secret
+            FROM totp_configurations
+            ORDER BY username ASC
+        `;
+
+        try {
+            const result = await this.pool.query(query);
+            return result.rows.map((row: TOTPConfiguration) => ({
+                ...row,
+                secret: Buffer.from('[ENCRYPTED]')
+            }));
+        } catch (error) {
+            log.error('Error reading TOTP configurations:', error);
+            throw error;
+        }
+    }
+
+    async deleteTOTPConfiguration(id: number): Promise<boolean> {
+        const query = `DELETE FROM totp_configurations WHERE id = $1`;
+
+        try {
+            const result = await this.pool.query(query, [id]);
+            return (result.rowCount ?? 0) > 0;
+        } catch (error) {
+            log.error('Error deleting TOTP configuration:', error);
+            throw error;
+        }
+    }
+
+    async getTOTPHistory(limit = 100): Promise<TOTPHistory[]> {
+        const query = `
+            SELECT
+                id,
+                created_at,
+                username,
+                step
+            FROM totp_history
+            ORDER BY created_at DESC
+            LIMIT $1
+        `;
+
+        try {
+            const result = await this.pool.query(query, [limit]);
+            return result.rows as TOTPHistory[];
+        } catch (error) {
+            log.error('Error reading TOTP history:', error);
+            throw error;
+        }
+    }
+
+    async getBannedUsers(): Promise<BannedUser[]> {
+        const query = `
+            SELECT
+                id,
+                time,
+                expires,
+                expired,
+                revoked,
+                username,
+                source,
+                reason
+            FROM banned_user
+            ORDER BY time DESC
+        `;
+
+        try {
+            const result = await this.pool.query(query);
+            return result.rows as BannedUser[];
+        } catch (error) {
+            log.error('Error reading banned users:', error);
+            throw error;
+        }
+    }
+
+    async createBannedUser(username: string, expires: Date | null, source: string, reason: string | null): Promise<boolean> {
+        const query = `
+            INSERT INTO banned_user (username, expires, source, reason)
+            VALUES ($1, $2, $3, $4)
+        `;
+
+        try {
+            await this.pool.query(query, [username, expires, source, reason]);
+            return true;
+        } catch (error) {
+            log.error('Error creating banned user:', error);
+            throw error;
+        }
+    }
+
+    async deleteBannedUser(id: number): Promise<boolean> {
+        const query = `DELETE FROM banned_user WHERE id = $1`;
+
+        try {
+            const result = await this.pool.query(query, [id]);
+            return (result.rowCount ?? 0) > 0;
+        } catch (error) {
+            log.error('Error deleting banned user:', error);
+            throw error;
+        }
+    }
+
+    async getBannedIPs(): Promise<BannedIP[]> {
+        const query = `
+            SELECT
+                id,
+                time,
+                expires,
+                expired,
+                revoked,
+                ip,
+                source,
+                reason
+            FROM banned_ip
+            ORDER BY time DESC
+        `;
+
+        try {
+            const result = await this.pool.query(query);
+            return result.rows as BannedIP[];
+        } catch (error) {
+            log.error('Error reading banned IPs:', error);
+            throw error;
+        }
+    }
+
+    async createBannedIP(ip: string, expires: Date | null, source: string, reason: string | null): Promise<boolean> {
+        const query = `
+            INSERT INTO banned_ip (ip, expires, source, reason)
+            VALUES ($1, $2, $3, $4)
+        `;
+
+        try {
+            await this.pool.query(query, [ip, expires, source, reason]);
+            return true;
+        } catch (error) {
+            log.error('Error creating banned IP:', error);
+            throw error;
+        }
+    }
+
+    async deleteBannedIP(id: number): Promise<boolean> {
+        const query = `DELETE FROM banned_ip WHERE id = $1`;
+
+        try {
+            const result = await this.pool.query(query, [id]);
+            return (result.rowCount ?? 0) > 0;
+        } catch (error) {
+            log.error('Error deleting banned IP:', error);
+            throw error;
+        }
+    }
+
+    async healthCheck(): Promise<void> {
+        try {
+            await this.pool.query('SELECT 1');
+        } catch (error) {
+            log.error('Database health check failed:', error);
+            throw error;
+        }
+    }
+
+    async close(): Promise<void> {
+        await this.pool.end();
     }
 }
 
