@@ -1,0 +1,130 @@
+networks:
+  authelia:
+    external: true
+    name: authelia
+
+services:
+  postgres:
+    image: 'postgres:18-alpine'
+    networks:
+      authelia:
+        aliases:
+          - postgres
+    container_name: 'postgres'
+    restart: no
+    environment:
+      - POSTGRES_DB=authelia
+      - POSTGRES_USER=authelia
+      - POSTGRES_PASSWORD=authelia_test_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authelia -d authelia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  authelia:
+    networks:
+      authelia:
+        aliases:
+          - authelia
+    depends_on:
+      lldap:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    image: 'docker.io/authelia/authelia:4.39.6'
+    container_name: 'authelia'
+    restart: unless-stopped
+    ports:
+      - "9091:9091"
+    volumes:
+      - './test-configs/authelia-pg:/config'
+      - '/var/log/authelia:/var/log/authelia'
+    environment:
+      - TZ=UTC
+      - AUTHELIA_LOG_LEVEL=debug
+      - AUTHELIA_LOG_FORMAT=json
+      - AUTHELIA_LOG_FILE_PATH=/var/log/authelia/authelia.log
+      - AUTHELIA_LOG_KEEP_STDOUT=true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9091/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  authelia-admin:
+    networks:
+      authelia:
+        aliases:
+          - authelia-admin
+    depends_on:
+      - authelia
+    image: 'authelia-admin:latest'
+    container_name: 'authelia-admin'
+    restart: no
+    ports:
+      - "9093:9093"
+    volumes:
+      - './test-configs/config.yml:/opt/authelia-admin/config.yml:ro'
+      - './test-configs/authelia-pg:/config'
+    environment:
+      - TZ=UTC
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - TRUSTED_ORIGINS=https://auth.localhost.test
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9093/auth-admin/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  lldap:
+    image: 'docker.io/lldap/lldap:v0.6.2-debian'
+    networks:
+      authelia:
+        aliases:
+          - lldap
+    container_name: 'lldap'
+    restart: no
+    volumes:
+      - './test-configs/lldap/bootstrap:/bootstrap'
+      - './.test-data/lldap:/data'
+      - './test-configs/lldap/lldap_config.toml:/data/lldap_config.toml'
+    ports:
+      - "3890:3890"
+      - "17170:17170"
+    environment:
+      - TZ=UTC
+      - RUST_LOG=debug
+      - LLDAP_VERBOSE=true
+      - LLDAP_LDAP_USER_EMAIL=admin@localhost
+      - LLDAP_LDAP_USER_PASS=admin1234
+      - LLDAP_JWT_SECRET=very_unsecure_jwt_secret_for_testing_only
+      - LLDAP_KEY_SEED=very_unsecure_key_seed_for_testing_only
+      - LLDAP_ADMIN_USERNAME=admin
+      - LLDAP_ADMIN_PASSWORD=admin1234
+      - USER_CONFIGS_DIR=/bootstrap/user-configs
+      - GROUP_CONFIGS_DIR=/bootstrap/group-configs
+      - USER_SCHEMAS_DIR=/bootstrap/user-schemas
+      - GROUP_SCHEMAS_DIR=/bootstrap/group-schemas
+      - DO_CLEANUP=false
+
+  traefik:
+    image: "docker.io/traefik:latest"
+    networks:
+      authelia:
+        aliases:
+          - auth.localhost.test
+    container_name: "traefik"
+    restart: "unless-stopped"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command:
+      - "--configfile=/etc/traefik/traefik.yml"
+    ports:
+      - "0.0.0.0:443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./test-configs/traefik-test:/etc/traefik"
+      - "./test-configs/traefik-test/FileProvider:/FileProvider"
+      - "/var/log/traefik:/var/log/traefik"

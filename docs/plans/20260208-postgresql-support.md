@@ -137,15 +137,15 @@
 
 **Files**: `docker-compose.test-pg.yml` (NEW)
 
-- [ ] Copy `docker-compose.test.yml` as the base
-- [ ] Add `postgres` service with `image: 'postgres:18-alpine'`, `container_name: 'postgres'`, network alias `postgres`, env vars `POSTGRES_DB=authelia`, `POSTGRES_USER=authelia`, `POSTGRES_PASSWORD=authelia_test_password`
-- [ ] Add healthcheck to `postgres` service: `pg_isready -U authelia -d authelia`, interval 5s, timeout 5s, retries 10
-- [ ] Update `authelia` service `depends_on`: add `postgres: condition: service_healthy`
-- [ ] Update `authelia` service `volumes`: change `'./test-configs/authelia:/config'` to `'./test-configs/authelia-pg:/config'`
-- [ ] Remove `'./.test-data/authelia:/data'` volume from `authelia` service (PG doesn't need SQLite data dir)
-- [ ] Update `authelia-admin` service `volumes`: change `'./test-configs/authelia:/config'` to `'./test-configs/authelia-pg:/config'`
-- [ ] Remove `'./.test-data/authelia:/data'` volume from `authelia-admin` service
-- [ ] Keep `lldap` and `traefik` services identical to `docker-compose.test.yml`
+- [x] Copy `docker-compose.test.yml` as the base
+- [x] Add `postgres` service with `image: 'postgres:18-alpine'`, `container_name: 'postgres'`, network alias `postgres`, env vars `POSTGRES_DB=authelia`, `POSTGRES_USER=authelia`, `POSTGRES_PASSWORD=authelia_test_password`
+- [x] Add healthcheck to `postgres` service: `pg_isready -U authelia -d authelia`, interval 5s, timeout 5s, retries 10
+- [x] Update `authelia` service `depends_on`: add `postgres: condition: service_healthy`
+- [x] Update `authelia` service `volumes`: change `'./test-configs/authelia:/config'` to `'./test-configs/authelia-pg:/config'`
+- [x] Remove `'./.test-data/authelia:/data'` volume from `authelia` service (PG doesn't need SQLite data dir)
+- [x] Update `authelia-admin` service `volumes`: change `'./test-configs/authelia:/config'` to `'./test-configs/authelia-pg:/config'`
+- [x] Remove `'./.test-data/authelia:/data'` volume from `authelia-admin` service
+- [x] Keep `lldap` and `traefik` services identical to `docker-compose.test.yml`
 
 ---
 
