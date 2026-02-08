@@ -128,7 +128,6 @@
   "dashboard_totp_title": "TOTP",
   "dashboard_welcome_text": "Manage your Authelia authentication system from this dashboard.",
   "dashboard_welcome_title": "Welcome to Authelia Admin",
-  "database_label": "Database: {info}",
   "db_config_not_found": "Database configuration not found in Authelia config",
   "error_400": "Bad Request",
   "error_401": "Unauthorized",

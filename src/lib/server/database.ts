@@ -305,6 +305,11 @@ class SQLiteAdapter implements DatabaseAdapter {
     }
 
     async close(): Promise<void> {
+        // No-op: connection is long-lived and shared across requests.
+        // Cleanup happens on process exit via shutdownConnection().
+    }
+
+    async shutdownConnection(): Promise<void> {
         await this.dbClose();
     }
 }
@@ -535,15 +540,20 @@ class PostgreSQLAdapter implements DatabaseAdapter {
 }
 
 
-export function getDatabaseDisplayInfo(config: DatabaseConfig): string | null {
-    if (config.type === 'sqlite') return config.path ?? null;
-    if (config.type === 'postgres' && config.postgres) {
-        return `PostgreSQL: ${config.postgres.host}:${config.postgres.port}/${config.postgres.database}`;
-    }
-    return null;
-}
+// Cached config — Authelia config file doesn't change at runtime
+let cachedConfigPromise: Promise<DatabaseConfig | null> | null = null;
 
 export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
+    if (!cachedConfigPromise) {
+        cachedConfigPromise = readDatabaseConfig().catch((err) => {
+            cachedConfigPromise = null;
+            throw err;
+        });
+    }
+    return cachedConfigPromise;
+}
+
+async function readDatabaseConfig(): Promise<DatabaseConfig | null> {
     try {
         const configPath = process.env.AAD_AUTHELIA_CONFIG_PATH || process.env.AUTHELIA_CONFIG_PATH || '/config/configuration.yml';
         const configContent = await fs.readFile(configPath, 'utf-8');
@@ -596,7 +606,8 @@ export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
     }
 }
 
-// Singleton PostgreSQL adapter - pool is shared across requests
+// Singleton adapters — connections are long-lived and shared across requests
+let sqliteAdapterPromise: Promise<SQLiteAdapter> | null = null;
 let pgAdapterPromise: Promise<PostgreSQLAdapter> | null = null;
 
 export async function createDatabaseAdapter(config: DatabaseConfig): Promise<DatabaseAdapter> {
@@ -606,7 +617,13 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
                 log.error('SQLite database path is required')
                 throw new Error('SQLite database path is required');
             }
-            return await SQLiteAdapter.create(config.path);
+            if (!sqliteAdapterPromise) {
+                sqliteAdapterPromise = SQLiteAdapter.create(config.path).catch((err) => {
+                    sqliteAdapterPromise = null;
+                    throw err;
+                });
+            }
+            return await sqliteAdapterPromise;
         case 'postgres':
             if (!config.postgres) {
                 log.error('PostgreSQL configuration is required')
@@ -626,6 +643,15 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
 }
 
 export async function shutdownDatabase(): Promise<void> {
+    if (sqliteAdapterPromise) {
+        try {
+            const adapter = await sqliteAdapterPromise;
+            await adapter.shutdownConnection();
+        } catch {
+            // Creation may have failed; nothing to shut down
+        }
+        sqliteAdapterPromise = null;
+    }
     if (pgAdapterPromise) {
         try {
             const adapter = await pgAdapterPromise;

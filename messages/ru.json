@@ -128,7 +128,6 @@
   "dashboard_totp_title": "TOTP",
   "dashboard_welcome_text": "Управляйте системой аутентификации Authelia с этой панели.",
   "dashboard_welcome_title": "Добро пожаловать в Authelia Admin",
-  "database_label": "База данных: {info}",
   "db_config_not_found": "Конфигурация базы данных не найдена в настройках Authelia",
   "error_400": "Неверный запрос",
   "error_401": "Не авторизован",

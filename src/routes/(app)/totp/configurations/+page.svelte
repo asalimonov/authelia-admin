@@ -54,11 +54,7 @@
 				{m.totp_config_title()}
 			</h2>
 			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-				{#if data.dbInfo}
-					{m.database_label({ info: data.dbInfo })}
-				{:else}
-					{m.totp_config_subtitle()}
-				{/if}
+				{m.totp_config_subtitle()}
 			</p>
 		</div>
 

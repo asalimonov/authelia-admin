@@ -38,11 +38,7 @@
 				{m.totp_history_title()}
 			</h2>
 			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-				{#if data.dbInfo}
-					{m.database_label({ info: data.dbInfo })} | {m.totp_history_showing_entries({ limit: data.limit })}
-				{:else}
-					{m.totp_history_subtitle()}
-				{/if}
+				{m.totp_history_subtitle()}
 			</p>
 		</div>
 

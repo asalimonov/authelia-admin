@@ -75,11 +75,7 @@
 				{m.banned_ip_title()}
 			</h2>
 			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-				{#if data.dbInfo}
-					{m.database_label({ info: data.dbInfo })}
-				{:else}
-					{m.banned_ip_subtitle()}
-				{/if}
+				{m.banned_ip_subtitle()}
 			</p>
 		</div>
 

@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDatabaseConfig, createDatabaseAdapter, getDatabaseDisplayInfo } from '$lib/server/database';
+import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
 import { fail } from '@sveltejs/kit';
 import { sanitizeString } from '$lib/utils/validation';
 import * as m from '$lib/paraglide/messages';
@@ -15,7 +15,6 @@ export const load: PageServerLoad = async () => {
             };
         }
 
-        const dbInfo = getDatabaseDisplayInfo(dbConfig);
         const adapter = await createDatabaseAdapter(dbConfig);
 
         try {
@@ -23,7 +22,6 @@ export const load: PageServerLoad = async () => {
 
             return {
                 error: null,
-                dbInfo,
                 bannedIPs
             };
         } finally {

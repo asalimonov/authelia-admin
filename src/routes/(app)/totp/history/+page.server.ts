@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getDatabaseConfig, createDatabaseAdapter, getDatabaseDisplayInfo } from '$lib/server/database';
+import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
 import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -17,7 +17,6 @@ export const load: PageServerLoad = async ({ url }) => {
             };
         }
 
-        const dbInfo = getDatabaseDisplayInfo(dbConfig);
         const adapter = await createDatabaseAdapter(dbConfig);
 
         try {
@@ -42,7 +41,6 @@ export const load: PageServerLoad = async ({ url }) => {
 
             return {
                 error: null,
-                dbInfo,
                 history,
                 groupedHistory,
                 stats,

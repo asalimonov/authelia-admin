@@ -39,7 +39,7 @@ services:
           - authelia-admin
     depends_on:
       - authelia
-    image: 'authelia-admin:latest'
+    image: 'ghcr.io/asalimonov/authelia-admin:latest'
     container_name: 'authelia-admin'
     restart: no
     ports:

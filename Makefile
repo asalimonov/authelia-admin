@@ -34,6 +34,7 @@ build: ## Build production Docker image (self-contained, no pre-build required)
 		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
 	fi
 	docker build --network=host -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
+	docker tag $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) ghcr.io/asalimonov/authelia-admin:latest
 
 .PHONY: build-dev
 build-dev: ## Build development Docker image
