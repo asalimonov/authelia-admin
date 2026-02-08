@@ -523,6 +523,11 @@ class PostgreSQLAdapter implements DatabaseAdapter {
     }
 
     async close(): Promise<void> {
+        // No-op: pool is long-lived and shared across requests.
+        // Pool cleanup happens on process exit via shutdownPool().
+    }
+
+    async shutdownPool(): Promise<void> {
         await this.pool.end();
     }
 }
@@ -589,6 +594,9 @@ export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
     }
 }
 
+// Singleton PostgreSQL adapter - pool is shared across requests
+let pgAdapterInstance: PostgreSQLAdapter | null = null;
+
 export async function createDatabaseAdapter(config: DatabaseConfig): Promise<DatabaseAdapter> {
     switch (config.type) {
         case 'sqlite':
@@ -602,7 +610,11 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
                 log.error('PostgreSQL configuration is required')
                 throw new Error('PostgreSQL configuration is required');
             }
-            return await PostgreSQLAdapter.create(config.postgres);
+            if (pgAdapterInstance) {
+                return pgAdapterInstance;
+            }
+            pgAdapterInstance = await PostgreSQLAdapter.create(config.postgres);
+            return pgAdapterInstance;
         default:
             log.error('Unsupported database type:', config.type)
             throw new Error(`Unsupported database type: ${config.type}`);
