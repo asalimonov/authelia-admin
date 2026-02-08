@@ -125,11 +125,11 @@
 
 **Files**: `test-configs/authelia-pg/configuration.yml` (NEW)
 
-- [ ] Create directory `test-configs/authelia-pg/`
-- [ ] Copy `test-configs/authelia/configuration.yml` to `test-configs/authelia-pg/configuration.yml`
-- [ ] Replace the `storage:` section: remove `local:` with `path: '/data/db.sqlite3'`
-- [ ] Add `postgres:` subsection with `address: 'tcp://postgres:5432'`, `database: 'authelia'`, `schema: 'public'`, `username: 'authelia'`, `password: 'authelia_test_password'`, `timeout: '5s'`
-- [ ] Keep `encryption_key` and all other sections (server, auth backend, session, regulation, notifier, etc.) identical
+- [x] Create directory `test-configs/authelia-pg/`
+- [x] Copy `test-configs/authelia/configuration.yml` to `test-configs/authelia-pg/configuration.yml`
+- [x] Replace the `storage:` section: remove `local:` with `path: '/data/db.sqlite3'`
+- [x] Add `postgres:` subsection with `address: 'tcp://postgres:5432'`, `database: 'authelia'`, `schema: 'public'`, `username: 'authelia'`, `password: 'authelia_test_password'`, `timeout: '5s'`
+- [x] Keep `encryption_key` and all other sections (server, auth backend, session, regulation, notifier, etc.) identical
 
 ---
 

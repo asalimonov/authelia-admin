@@ -1,0 +1,141 @@
+---
+theme: 'light'
+# default_2fa_method: 'totp'
+server:
+  address: 'tcp://0.0.0.0:9091/'
+  disable_healthcheck: false
+  buffers:
+    read: 4096
+    write: 4096
+  timeouts:
+    read: '6s'
+    write: '6s'
+    idle: '30s'
+  endpoints:
+    enable_pprof: false
+    enable_expvars: false
+    authz: {}
+    rate_limits: {}
+
+
+authentication_backend:
+  password_reset:
+    disable: false
+  password_change:
+    disable: false
+  refresh_interval: '1m'
+  ldap:
+    implementation: 'lldap'
+    address: 'ldap://lldap:3890'
+    base_dn: 'dc=localhost,dc=test'
+    additional_users_dn: 'ou=people' # see `ldap_people_dn` variable
+    users_filter: '(&(|({username_attribute}={input})({mail_attribute}={input}))(objectClass=person)(!(memberOf=cn=disabled,ou=groups,dc=localhost,dc=test)))'
+    additional_groups_dn: 'ou=groups'
+    groups_filter: '(member={dn})'
+    user: 'UID=bind_user,OU=people,dc=localhost,dc=test'
+    password: 'binduser1234'
+    attributes:
+      username: 'uid'
+      display_name: 'displayName'
+      mail: 'mail'
+      member_of: 'memberOf'
+      group_name: 'cn'
+
+log:
+  level: 'debug'
+  format: 'json'
+  file_path: '/var/log/authelia/authelia.log'
+  keep_stdout: true
+
+totp:
+  disable: 'true'
+  issuer: 'localhost'
+  algorithm: 'sha1'
+  digits: 6
+  period: 30
+  skew: 1
+  secret_size: 32
+  allowed_algorithms:
+    - 'SHA1'
+    - 'SHA256'
+  allowed_digits:
+    - 6
+    - 8
+  disable_reuse_security_policy: false
+
+webauthn:
+  enable_passkey_login: false
+  attestation_conveyance_preference: 'indirect'
+  timeout: '60 seconds'
+  filtering:
+    permitted_aaguids: []
+    prohibited_aaguids: []
+    prohibit_backup_eligibility: true
+  selection_criteria:
+    attachment: ''
+    discoverability: 'preferred'
+    user_verification: 'preferred'
+  metadata:
+    enabled: true
+    validate_trust_anchor: true
+    validate_entry: true
+    validate_status: true
+    validate_entry_permit_zero_aaguid: false
+
+password_policy:
+  standard:
+    enabled: true
+    min_length: 8
+    max_length: 0
+    require_uppercase: true
+    require_lowercase: true
+    require_number: true
+    require_special: false
+
+identity_validation:
+  reset_password:
+    jwt_secret: 'a_very_important_secret'
+    jwt_lifespan: '5 minutes'
+    jwt_algorithm: 'HS256'
+
+access_control:
+  default_policy: 'one_factor' ## https://www.authelia.com/configuration/security/access-control/#policies
+
+session:
+  secret: 'insecure_session_secret'
+  name: 'authelia_session'
+  same_site: 'lax'
+  inactivity: '1h'
+  expiration: '12h'
+  remember_me: '1M'
+  cookies:
+    - domain: 'localhost.test'
+      authelia_url: 'https://auth.localhost.test'
+      default_redirection_url: 'https://auth.localhost.test/auth-admin'
+      name: 'authelia_session'
+      same_site: 'lax'
+      inactivity: '30m'
+      expiration: '24h'
+      remember_me: '1M'
+
+regulation:
+  modes:
+    - 'user'
+    - 'ip'
+  max_retries: 5
+  find_time: '1m'
+  ban_time: '3m'
+
+storage:
+  encryption_key: 'a_very_important_secret'
+  postgres:
+    address: 'tcp://postgres:5432'
+    database: 'authelia'
+    schema: 'public'
+    username: 'authelia'
+    password: 'authelia_test_password'
+    timeout: '5s'
+
+notifier:
+  filesystem:
+    filename: '/data/notification.txt'
