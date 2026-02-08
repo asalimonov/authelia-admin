@@ -5,6 +5,11 @@ import pg from 'pg';
 import { promisify } from 'node:util';
 import { createLogger } from './logger';
 
+// Override pg type parsers to return ISO strings for timestamps (matching SQLite behavior)
+// OID 1114 = TIMESTAMP, OID 1184 = TIMESTAMPTZ
+pg.types.setTypeParser(1114, (val: string) => val);
+pg.types.setTypeParser(1184, (val: string) => val);
+
 const log = createLogger('database');
 
 export interface TOTPConfiguration {
@@ -319,10 +324,18 @@ class PostgreSQLAdapter implements DatabaseAdapter {
         };
 
         if (config.schema && config.schema !== 'public') {
+            if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(config.schema)) {
+                throw new Error(`Invalid PostgreSQL schema name: ${config.schema}`);
+            }
             poolConfig.options = `-c search_path=${config.schema}`;
         }
 
         const pool = new pg.Pool(poolConfig);
+
+        // Prevent unhandled errors on idle clients from crashing the process
+        pool.on('error', (err) => {
+            log.error('Unexpected error on idle PostgreSQL client:', err);
+        });
 
         // Verify connection
         try {
@@ -542,25 +555,25 @@ export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
         }
 
         if (config.storage.postgres) {
-            const pg = config.storage.postgres;
+            const pgStorage = config.storage.postgres;
             let host = 'localhost';
             let port = 5432;
 
-            if (pg.address) {
+            if (pgStorage.address) {
                 // Authelia uses 'tcp://host:port' format - replace tcp:// with http:// for URL parsing
-                const url = new URL(pg.address.replace(/^tcp:\/\//, 'http://'));
+                const url = new URL(pgStorage.address.replace(/^tcp:\/\//, 'http://'));
                 host = url.hostname;
                 port = url.port ? parseInt(url.port, 10) : 5432;
-            } else if (pg.host) {
+            } else if (pgStorage.host) {
                 // Legacy Authelia config with plain host field
-                host = pg.host;
-                port = pg.port ? parseInt(String(pg.port), 10) : 5432;
+                host = pgStorage.host;
+                port = pgStorage.port ? parseInt(String(pgStorage.port), 10) : 5432;
             }
 
-            const database = pg.database || 'authelia';
-            const username = pg.username || 'authelia';
-            const password = pg.password || '';
-            const schema = pg.schema || 'public';
+            const database = pgStorage.database || 'authelia';
+            const username = pgStorage.username || 'authelia';
+            const password = pgStorage.password || '';
+            const schema = pgStorage.schema || 'public';
 
             log.debug(`Using PostgreSQL database: ${host}:${port}/${database}`);
             return {
