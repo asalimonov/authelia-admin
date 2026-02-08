@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
+import { getDatabaseConfig, createDatabaseAdapter, getDatabaseDisplayInfo } from '$lib/server/database';
 import { fail } from '@sveltejs/kit';
 import { sanitizeString } from '$lib/utils/validation';
 import * as m from '$lib/paraglide/messages';
@@ -11,17 +11,11 @@ export const load: PageServerLoad = async () => {
         if (!dbConfig) {
             return {
                 error: m.db_config_not_found(),
-                storageType: null,
                 bannedIPs: []
             };
         }
 
-        const dbInfo = dbConfig.type === 'sqlite'
-            ? dbConfig.path ?? null
-            : dbConfig.type === 'postgres' && dbConfig.postgres
-                ? `PostgreSQL: ${dbConfig.postgres.host}:${dbConfig.postgres.port}/${dbConfig.postgres.database}`
-                : null;
-
+        const dbInfo = getDatabaseDisplayInfo(dbConfig);
         const adapter = await createDatabaseAdapter(dbConfig);
 
         try {
@@ -29,7 +23,6 @@ export const load: PageServerLoad = async () => {
 
             return {
                 error: null,
-                storageType: dbConfig.type,
                 dbInfo,
                 bannedIPs
             };
@@ -40,7 +33,6 @@ export const load: PageServerLoad = async () => {
     } catch (error) {
         return {
             error: m.banned_ips_load_failed({ error: (error as Error).message }),
-            storageType: null,
             bannedIPs: []
         };
     }
@@ -92,7 +84,7 @@ export const actions: Actions = {
                     return fail(500, { error: m.banned_ip_ban_failed({ ip }) });
                 }
                 
-                return { success: true, message: `IP "${ip}" has been banned` };
+                return { success: true, message: m.banned_ip_ban_success({ ip }) };
             } finally {
                 await adapter.close();
             }
@@ -128,7 +120,7 @@ export const actions: Actions = {
                     return fail(404, { error: m.banned_ip_not_found() });
                 }
                 
-                return { success: true, message: `Ban for IP "${ip}" has been deleted` };
+                return { success: true, message: m.banned_ip_delete_success({ ip: ip || '' }) };
             } finally {
                 await adapter.close();
             }

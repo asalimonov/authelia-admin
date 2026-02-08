@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
+import { getDatabaseConfig, createDatabaseAdapter, getDatabaseDisplayInfo } from '$lib/server/database';
 import { fail } from '@sveltejs/kit';
 import * as m from '$lib/paraglide/messages';
 
@@ -10,17 +10,11 @@ export const load: PageServerLoad = async () => {
         if (!dbConfig) {
             return {
                 error: m.db_config_not_found(),
-                storageType: null,
                 configurations: []
             };
         }
 
-        const dbInfo = dbConfig.type === 'sqlite'
-            ? dbConfig.path ?? null
-            : dbConfig.type === 'postgres' && dbConfig.postgres
-                ? `PostgreSQL: ${dbConfig.postgres.host}:${dbConfig.postgres.port}/${dbConfig.postgres.database}`
-                : null;
-
+        const dbInfo = getDatabaseDisplayInfo(dbConfig);
         const adapter = await createDatabaseAdapter(dbConfig);
 
         try {
@@ -28,7 +22,6 @@ export const load: PageServerLoad = async () => {
 
             return {
                 error: null,
-                storageType: dbConfig.type,
                 dbInfo,
                 configurations: configurations.map(config => ({
                     ...config,
@@ -44,7 +37,6 @@ export const load: PageServerLoad = async () => {
     } catch (error) {
         return {
             error: m.totp_configs_load_failed({ error: (error as Error).message }),
-            storageType: null,
             configurations: []
         };
     }

@@ -12,7 +12,7 @@ Authelia Admin Control Panel - A web-based administration interface for managing
 - **Language**: TypeScript with strict mode enabled
 - **Styling**: Tailwind CSS v4 with custom theme
 - **i18n**: Inlang Paraglide JS v2 (English, Russian)
-- **Database**: SQLite (via sqlite3 package)
+- **Database**: SQLite (via sqlite3 package), PostgreSQL (via pg/node-postgres package)
 - **LDAP**: ldapts library for LDAP operations
 - **Build Tool**: Vite
 - **Deployment**: Node adapter, builds to `build/` directory
@@ -28,12 +28,12 @@ Authelia Admin Control Panel - A web-based administration interface for managing
 - Dedicated role for management of regular users (user_manager)
 - Dedicated role for  (user_manager)
 - Roles: admin, user_manager (management of users), passowrd_manager (can change passwords). No access for regular users.
+- PostgreSQL database support for Authelia storage backend
 
 ### Not yet implemented
 
 - Management of attributes of users and groups
 - Management of users and groups via LDAP protocol
-- PostgreSQL engine for Authelia
 - Browse and management of users in Authelia file provider
 
 ## Development Commands
@@ -86,10 +86,12 @@ make test-medium   # Run functional tests only
 make test-lint     # Run ESLint on TypeScript code
 
 # E2E Testing (Playwright)
-make test-e2e      # Full cycle: build image, start stack, run tests, tear down
-make test-e2e-up   # Start E2E test stack (docker-compose.test.yml)
-make test-e2e-down # Stop and remove E2E test stack
-make test-e2e-run  # Run Playwright E2E tests (assumes stack is running)
+make test-e2e         # Full cycle: build, run SQLite + PostgreSQL tests, tear down
+make test-e2e-up      # Start SQLite E2E test stack (docker-compose.test.yml)
+make test-e2e-down    # Stop and remove SQLite E2E test stack
+make test-e2e-pg-up   # Start PostgreSQL E2E test stack (docker-compose.test-pg.yml)
+make test-e2e-pg-down # Stop and remove PostgreSQL E2E test stack
+make test-e2e-run     # Run Playwright E2E tests (assumes stack is running)
 
 # Cleanup
 make clean         # Clean up images and local files
@@ -111,7 +113,7 @@ make network-remove # Remove Docker network
 src/
 ├── lib/
 │   └── server/
-│       ├── database.ts          # SQLite adapter with optimizations
+│       ├── database.ts          # Database adapters (SQLite, PostgreSQL)
 │       ├── ldap.ts              # LDAP client singleton class
 │       └── directory-service/   # Directory service abstraction
 ├── routes/
@@ -134,7 +136,9 @@ src/
 
 ```
 test-configs/
-├── authelia/            # Authelia configuration
+├── authelia/            # Authelia configuration (SQLite)
+│   └── configuration.yml
+├── authelia-pg/         # Authelia configuration (PostgreSQL)
 │   └── configuration.yml
 ├── lldap/              # LLDAP configuration
 │   ├── lldap_config.toml
@@ -399,13 +403,12 @@ npm rebuild sqlite3 --build-from-source
 
 ## Future Improvements
 1. Implement full RBAC (role-based access control)
-2. Add PostgreSQL support for Authelia storage
-3. Create user management for file-based provider
-4. Add comprehensive audit logging
-5. Implement automated testing suite
-6. Create Helm chart for Kubernetes
-7. Add metrics and monitoring
-8. Implement backup/restore functionality
+2. Create user management for file-based provider
+3. Add comprehensive audit logging
+4. Implement automated testing suite
+5. Create Helm chart for Kubernetes
+6. Add metrics and monitoring
+7. Implement backup/restore functionality
 
 ## Important Notes for Development
 

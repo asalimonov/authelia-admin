@@ -319,8 +319,8 @@ class PostgreSQLAdapter implements DatabaseAdapter {
         });
 
         if (config.schema && config.schema !== 'public') {
-            pool.on('connect', (client) => {
-                client.query(`SET search_path TO ${pg.Client.prototype.escapeIdentifier(config.schema!)}`);
+            pool.on('connect', async (client) => {
+                await client.query(`SET search_path TO ${pg.Client.prototype.escapeIdentifier(config.schema!)}`);
             });
         }
 
@@ -509,6 +509,14 @@ class PostgreSQLAdapter implements DatabaseAdapter {
     }
 }
 
+
+export function getDatabaseDisplayInfo(config: DatabaseConfig): string | null {
+    if (config.type === 'sqlite') return config.path ?? null;
+    if (config.type === 'postgres' && config.postgres) {
+        return `PostgreSQL: ${config.postgres.host}:${config.postgres.port}/${config.postgres.database}`;
+    }
+    return null;
+}
 
 export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
     try {

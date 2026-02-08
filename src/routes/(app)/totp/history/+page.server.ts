@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getDatabaseConfig, createDatabaseAdapter } from '$lib/server/database';
+import { getDatabaseConfig, createDatabaseAdapter, getDatabaseDisplayInfo } from '$lib/server/database';
 import * as m from '$lib/paraglide/messages';
 
 export const load: PageServerLoad = async ({ url }) => {
@@ -12,17 +12,11 @@ export const load: PageServerLoad = async ({ url }) => {
         if (!dbConfig) {
             return {
                 error: m.db_config_not_found(),
-                storageType: null,
                 history: []
             };
         }
 
-        const dbInfo = dbConfig.type === 'sqlite'
-            ? dbConfig.path ?? null
-            : dbConfig.type === 'postgres' && dbConfig.postgres
-                ? `PostgreSQL: ${dbConfig.postgres.host}:${dbConfig.postgres.port}/${dbConfig.postgres.database}`
-                : null;
-
+        const dbInfo = getDatabaseDisplayInfo(dbConfig);
         const adapter = await createDatabaseAdapter(dbConfig);
 
         try {
@@ -47,7 +41,6 @@ export const load: PageServerLoad = async ({ url }) => {
 
             return {
                 error: null,
-                storageType: dbConfig.type,
                 dbInfo,
                 history,
                 groupedHistory,
@@ -61,7 +54,6 @@ export const load: PageServerLoad = async ({ url }) => {
     } catch (error) {
         return {
             error: m.totp_history_load_failed({ error: (error as Error).message }),
-            storageType: null,
             history: []
         };
     }
