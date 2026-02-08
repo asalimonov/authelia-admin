@@ -611,7 +611,10 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
                 throw new Error('PostgreSQL configuration is required');
             }
             if (!pgAdapterPromise) {
-                pgAdapterPromise = PostgreSQLAdapter.create(config.postgres);
+                pgAdapterPromise = PostgreSQLAdapter.create(config.postgres).catch((err) => {
+                    pgAdapterPromise = null;
+                    throw err;
+                });
             }
             return await pgAdapterPromise;
         default:
@@ -622,8 +625,12 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
 
 export async function shutdownDatabase(): Promise<void> {
     if (pgAdapterPromise) {
-        const adapter = await pgAdapterPromise;
-        await adapter.shutdownPool();
+        try {
+            const adapter = await pgAdapterPromise;
+            await adapter.shutdownPool();
+        } catch {
+            // Pool creation may have failed; nothing to shut down
+        }
         pgAdapterPromise = null;
     }
 }
@@ -631,7 +638,12 @@ export async function shutdownDatabase(): Promise<void> {
 // Graceful shutdown: drain PostgreSQL pool on process exit
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
     process.on(signal, async () => {
-        await shutdownDatabase();
+        try {
+            await Promise.race([
+                shutdownDatabase(),
+                new Promise(resolve => setTimeout(resolve, 5000))
+            ]);
+        } catch { /* ignore shutdown errors */ }
         process.exit(0);
     });
 }
