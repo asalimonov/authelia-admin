@@ -173,6 +173,8 @@ Use `admin` user with `admin1234` password. The confirmation code can be found i
 - Production image built with `make build`
 - Chromium installed: `npx playwright install chromium`
 
+Run Playwright UI - `npx playwright test --config=e2e/playwright.config.ts --ui --project=chromium`
+
 ## Requirements
 
 - Node.js 22+
