@@ -129,6 +129,7 @@ test-e2e-run: ## Run Playwright E2E tests (assumes stack is running)
 .PHONY: test-e2e
 test-e2e: build ## Full E2E: build, start stack, run tests, tear down (SQLite + PostgreSQL)
 	@echo "=== Phase 1: SQLite E2E tests ==="
+	SQLITE_EXIT=1; PG_EXIT=1; \
 	$(MAKE) test-e2e-up && \
 	npx playwright test --config=e2e/playwright.config.ts; \
 	SQLITE_EXIT=$$?; \

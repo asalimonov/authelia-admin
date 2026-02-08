@@ -310,23 +310,28 @@ class PostgreSQLAdapter implements DatabaseAdapter {
     }
 
     static async create(config: PostgresConfig): Promise<PostgreSQLAdapter> {
-        const pool = new pg.Pool({
+        const poolConfig: pg.PoolConfig = {
             host: config.host,
             port: config.port,
             database: config.database,
             user: config.username,
             password: config.password,
-        });
+        };
 
         if (config.schema && config.schema !== 'public') {
-            pool.on('connect', async (client) => {
-                await client.query(`SET search_path TO ${pg.Client.prototype.escapeIdentifier(config.schema!)}`);
-            });
+            poolConfig.options = `-c search_path=${config.schema}`;
         }
 
+        const pool = new pg.Pool(poolConfig);
+
         // Verify connection
-        const client = await pool.connect();
-        client.release();
+        try {
+            const client = await pool.connect();
+            client.release();
+        } catch (error) {
+            await pool.end();
+            throw error;
+        }
 
         log.debug(`PostgreSQL pool created: ${config.host}:${config.port}/${config.database}`);
         return new PostgreSQLAdapter(pool);
