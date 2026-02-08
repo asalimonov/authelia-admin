@@ -572,11 +572,11 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
             }
             return await SQLiteAdapter.create(config.path);
         case 'postgres':
-            if (!config.connectionString) {
-                log.error('PostgreSQL connection string is required')
-                throw new Error('PostgreSQL connection string is required');
+            if (!config.postgres) {
+                log.error('PostgreSQL configuration is required')
+                throw new Error('PostgreSQL configuration is required');
             }
-            return new PostgreSQLAdapter(config.connectionString);
+            return await PostgreSQLAdapter.create(config.postgres);
         default:
             log.error('Unsupported database type:', config.type)
             throw new Error(`Unsupported database type: ${config.type}`);
