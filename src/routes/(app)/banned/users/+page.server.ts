@@ -16,14 +16,6 @@ export const load: PageServerLoad = async () => {
             };
         }
 
-        if (dbConfig.type !== 'sqlite') {
-            return {
-                error: m.db_type_not_supported({ dbType: dbConfig.type }),
-                storageType: dbConfig.type,
-                bannedUsers: []
-            };
-        }
-        
         const adapter = await createDatabaseAdapter(dbConfig);
         
         try {
@@ -72,12 +64,8 @@ export const actions: Actions = {
                 return fail(500, { error: m.db_config_not_found() });
             }
 
-            if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
-            }
-            
             const adapter = await createDatabaseAdapter(dbConfig);
-            
+
             try {
                 let expiresDate: Date | null = null;
                 if (!isPermanent && expires) {
@@ -119,10 +107,6 @@ export const actions: Actions = {
 
             if (!dbConfig) {
                 return fail(500, { error: m.db_config_not_found() });
-            }
-
-            if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
             }
 
             const adapter = await createDatabaseAdapter(dbConfig);

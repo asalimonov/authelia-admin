@@ -17,14 +17,6 @@ export const load: PageServerLoad = async ({ url }) => {
             };
         }
 
-        if (dbConfig.type !== 'sqlite') {
-            return {
-                error: m.db_type_not_supported({ dbType: dbConfig.type }),
-                storageType: dbConfig.type,
-                history: []
-            };
-        }
-        
         const adapter = await createDatabaseAdapter(dbConfig);
         
         try {
