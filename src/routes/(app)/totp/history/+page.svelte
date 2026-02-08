@@ -32,21 +32,14 @@
 		</div>
 	{/if}
 
-	{#if data.storageType && data.storageType !== 'sqlite'}
-		<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-			<p class="text-yellow-800 font-semibold">{m.storage_not_supported_title()}</p>
-			<p class="text-yellow-600">{m.storage_not_supported_text({ type: data.storageType })}</p>
-		</div>
-	{/if}
-
 	<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
 		<div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
 			<h2 class="text-xl font-bold text-gray-900 dark:text-white">
 				{m.totp_history_title()}
 			</h2>
 			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-				{#if data.dbPath}
-					{m.database_label({ path: data.dbPath })} | {m.totp_history_showing_entries({ limit: data.limit })}
+				{#if data.dbInfo}
+					{m.database_label({ info: data.dbInfo })} | {m.totp_history_showing_entries({ limit: data.limit })}
 				{:else}
 					{m.totp_history_subtitle()}
 				{/if}
