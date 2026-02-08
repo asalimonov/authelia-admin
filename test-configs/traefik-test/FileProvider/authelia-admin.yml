@@ -1,0 +1,16 @@
+http:
+  routers:
+    auth_http_internal:
+      rule: Host(`auth.localhost.test`) && PathPrefix(`/auth-admin`)
+      service: svc_authelia_admin_http
+      priority: 20
+      tls: true
+      entryPoints:
+        - web
+
+  services:
+    svc_authelia_admin_http:
+      loadBalancer:
+        servers:
+          - url: http://authelia-admin:9093
+        passHostHeader: true

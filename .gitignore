@@ -30,3 +30,16 @@ dist-ssr
 build
 .svelte-kit
 .test-data
+docs/plans
+progress-*
+docs/brainstorms
+docs/proposals
+docs/plans
+docs/requests
+
+# Playwright E2E tests
+e2e/.auth/
+e2e/test-results/
+e2e/playwright-report/
+playwright-report/
+test-results
