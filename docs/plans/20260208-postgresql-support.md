@@ -153,10 +153,10 @@
 
 **Files**: `Makefile`
 
-- [ ] Add `DOCKER_TEST_PG_COMPOSE_FILE ?= docker-compose.test-pg.yml` variable near existing `DOCKER_TEST_COMPOSE_FILE`
-- [ ] Add `test-e2e-pg-up` target: create `.test-data/lldap` dir, copy lldap config, run LLDAP bootstrap in background, `docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) up -d`, run `wait-for-services.sh`
-- [ ] Add `test-e2e-pg-down` target: `docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) down`
-- [ ] Update `test-e2e` target to run both stacks sequentially: Phase 1 (SQLite) runs existing stack + tests + teardown, captures exit code; Phase 2 (PostgreSQL) runs PG stack + same tests + teardown, captures exit code; fail if either exit code is non-zero
+- [x] Add `DOCKER_TEST_PG_COMPOSE_FILE ?= docker-compose.test-pg.yml` variable near existing `DOCKER_TEST_COMPOSE_FILE`
+- [x] Add `test-e2e-pg-up` target: create `.test-data/lldap` dir, copy lldap config, run LLDAP bootstrap in background, `docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) up -d`, run `wait-for-services.sh`
+- [x] Add `test-e2e-pg-down` target: `docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) down`
+- [x] Update `test-e2e` target to run both stacks sequentially: Phase 1 (SQLite) runs existing stack + tests + teardown, captures exit code; Phase 2 (PostgreSQL) runs PG stack + same tests + teardown, captures exit code; fail if either exit code is non-zero
 
 ---
 
