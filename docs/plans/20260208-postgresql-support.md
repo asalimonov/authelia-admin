@@ -110,14 +110,14 @@
 
 **Files**: `messages/en.json`, `messages/ru.json`
 
-- [ ] In `messages/en.json`: change `"database_label": "Database: {path}"` to `"database_label": "Database: {info}"`
-- [ ] In `messages/en.json`: change `"db_type_not_supported"` text from "Only SQLite is currently supported" to "Supported types: SQLite, PostgreSQL."
-- [ ] In `messages/en.json`: change `"storage_not_supported_text"` text from "Only SQLite is currently supported" to "Supported types: SQLite, PostgreSQL."
-- [ ] In `messages/en.json`: change `"db_type_not_supported_short"` text from "is not yet supported" to "is not supported"
-- [ ] In `messages/ru.json`: change `"database_label": "База данных: {path}"` to `"database_label": "База данных: {info}"`
-- [ ] In `messages/ru.json`: change `"db_type_not_supported"` text from "В настоящее время поддерживается только SQLite" to "Поддерживаемые типы: SQLite, PostgreSQL."
-- [ ] In `messages/ru.json`: change `"storage_not_supported_text"` text from "В настоящее время поддерживается только SQLite" to "Поддерживаемые типы: SQLite, PostgreSQL."
-- [ ] In `messages/ru.json`: change `"db_type_not_supported_short"` text from "пока не поддерживается" to "не поддерживается"
+- [x] In `messages/en.json`: change `"database_label": "Database: {path}"` to `"database_label": "Database: {info}"`
+- [x] In `messages/en.json`: change `"db_type_not_supported"` text from "Only SQLite is currently supported" to "Supported types: SQLite, PostgreSQL."
+- [x] In `messages/en.json`: change `"storage_not_supported_text"` text from "Only SQLite is currently supported" to "Supported types: SQLite, PostgreSQL."
+- [x] In `messages/en.json`: change `"db_type_not_supported_short"` text from "is not yet supported" to "is not supported"
+- [x] In `messages/ru.json`: change `"database_label": "База данных: {path}"` to `"database_label": "База данных: {info}"`
+- [x] In `messages/ru.json`: change `"db_type_not_supported"` text from "В настоящее время поддерживается только SQLite" to "Поддерживаемые типы: SQLite, PostgreSQL."
+- [x] In `messages/ru.json`: change `"storage_not_supported_text"` text from "В настоящее время поддерживается только SQLite" to "Поддерживаемые типы: SQLite, PostgreSQL."
+- [x] In `messages/ru.json`: change `"db_type_not_supported_short"` text from "пока не поддерживается" to "не поддерживается"
 
 ---
 
