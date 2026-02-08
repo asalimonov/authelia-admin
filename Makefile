@@ -134,7 +134,7 @@ test-e2e: build ## Full E2E: build, start stack, run tests, tear down (SQLite + 
 	npx playwright test --config=e2e/playwright.config.ts; \
 	SQLITE_EXIT=$$?; \
 	$(MAKE) test-e2e-down; \
-	rm -rf ./.test-data/lldap; \
+	rm -rf ./.test-data/lldap ./.test-data/authelia; \
 	echo "=== Phase 2: PostgreSQL E2E tests ==="; \
 	$(MAKE) test-e2e-pg-up && \
 	npx playwright test --config=e2e/playwright.config.ts; \

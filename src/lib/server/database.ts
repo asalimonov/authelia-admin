@@ -595,7 +595,7 @@ export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
 }
 
 // Singleton PostgreSQL adapter - pool is shared across requests
-let pgAdapterInstance: PostgreSQLAdapter | null = null;
+let pgAdapterPromise: Promise<PostgreSQLAdapter> | null = null;
 
 export async function createDatabaseAdapter(config: DatabaseConfig): Promise<DatabaseAdapter> {
     switch (config.type) {
@@ -610,13 +610,28 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
                 log.error('PostgreSQL configuration is required')
                 throw new Error('PostgreSQL configuration is required');
             }
-            if (pgAdapterInstance) {
-                return pgAdapterInstance;
+            if (!pgAdapterPromise) {
+                pgAdapterPromise = PostgreSQLAdapter.create(config.postgres);
             }
-            pgAdapterInstance = await PostgreSQLAdapter.create(config.postgres);
-            return pgAdapterInstance;
+            return await pgAdapterPromise;
         default:
             log.error('Unsupported database type:', config.type)
             throw new Error(`Unsupported database type: ${config.type}`);
     }
+}
+
+export async function shutdownDatabase(): Promise<void> {
+    if (pgAdapterPromise) {
+        const adapter = await pgAdapterPromise;
+        await adapter.shutdownPool();
+        pgAdapterPromise = null;
+    }
+}
+
+// Graceful shutdown: drain PostgreSQL pool on process exit
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(signal, async () => {
+        await shutdownDatabase();
+        process.exit(0);
+    });
 }
