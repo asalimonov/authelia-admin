@@ -1,6 +1,10 @@
 # Authelia Admin Configuration
 # Mount this file to /opt/authelia-admin/config.yml
 
+# Logging level (DEBUG, INFO, WARN, ERROR). Default: WARN
+# Can be overridden by AAD_LOGLEVEL environment variable
+logging_level: WARN
+
 # Authelia integration settings
 authelia:
   # Domain where Authelia is accessible

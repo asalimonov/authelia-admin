@@ -2,6 +2,9 @@ import { ApolloClient, InMemoryCache, gql, type DocumentNode } from '@apollo/cli
 import { HttpLink } from '@apollo/client/link/http';
 import fetch from 'cross-fetch';
 import type { LLDAPGraphQLConfig } from '../../config';
+import { createLogger } from '../../../logger';
+
+const log = createLogger('lldap-client');
 
 // Module-level token storage for thread-safe sharing across all requests
 let cachedToken: string | null = null;
@@ -39,11 +42,13 @@ export class LLDAPGraphQLClient {
 	private async getToken(): Promise<string> {
 		// Check if token is still valid (with 30-second buffer)
 		if (cachedToken && Date.now() < tokenExpiry - 30000) {
+			log.debug('Using cached token');
 			return cachedToken;
 		}
 
 		// If a refresh is already in progress, wait for it
 		if (refreshPromise) {
+			log.debug('Waiting for token refresh in progress');
 			await refreshPromise;
 			// Re-check token after waiting
 			if (cachedToken && Date.now() < tokenExpiry - 30000) {
@@ -52,6 +57,7 @@ export class LLDAPGraphQLClient {
 		}
 
 		// Start a new refresh
+		log.debug('Starting token refresh');
 		refreshPromise = this.refreshToken();
 
 		try {
@@ -69,6 +75,8 @@ export class LLDAPGraphQLClient {
 		// Derive auth URL from GraphQL endpoint
 		const authUrl = this.endpoint.replace('/api/graphql', '/auth/simple/login');
 
+		log.debug(`Authenticating to LLDAP as user: ${this.user}`);
+
 		const response = await fetch(authUrl, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -79,12 +87,14 @@ export class LLDAPGraphQLClient {
 		});
 
 		if (!response.ok) {
+			log.error(`Authentication failed: ${response.status} ${response.statusText}`);
 			throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
 		}
 
 		const data = (await response.json()) as AuthResponse;
 
 		if (!data.token) {
+			log.error('No token in authentication response');
 			throw new Error('No token in authentication response');
 		}
 
@@ -102,6 +112,7 @@ export class LLDAPGraphQLClient {
 			tokenExpiry = Date.now() + 3600000; // Default 1 hour on parse error
 		}
 
+		log.debug('Token refresh successful');
 		return cachedToken;
 	}
 
@@ -143,12 +154,15 @@ export class LLDAPGraphQLClient {
 
 		const queryDoc: DocumentNode = gql(queryString);
 
+		log.debug('Executing GraphQL query:', queryDoc, variables);
+
 		const result = await client.query<T>({
 			query: queryDoc,
 			variables
 		});
 
 		if (result.errors && result.errors.length > 0) {
+			log.error('GraphQL query error:', result.errors[0].message);
 			throw new Error(result.errors[0].message);
 		}
 
@@ -163,16 +177,20 @@ export class LLDAPGraphQLClient {
 
 		const mutationDoc: DocumentNode = gql(mutationString);
 
+		log.debug('Executing GraphQL mutation:', mutationDoc, variables);
+
 		const result = await client.mutate<T>({
 			mutation: mutationDoc,
 			variables
 		});
 
 		if (result.errors && result.errors.length > 0) {
+			log.error('GraphQL mutation error:', result.errors[0].message);
 			throw new Error(result.errors[0].message);
 		}
 
 		if (!result.data) {
+			log.error('No data in mutation response');
 			throw new Error('No data in mutation response');
 		}
 

@@ -27,6 +27,13 @@ Configuration can be provided via YAML file or environment variables. Environmen
 
 Don't forget to configure your load balancer. Authelia Admin CP should be accessible at `https://{{AAD_AUTHELIA_DOMAIN}}/auth-admin/`.
 
+Authelia Admin implements concept of protected users. **Protected users** are users which belong to the following groups: lldap_admin, lldap_password_manager, lldap_strict_readonly, authelia_user_manager. Only users with membership in lldap_admin can do anything with other protected users. Protected users are implemented to prevent access rights escalation.
+
+Add your users of Authelia Admin in the following groups:
+- lldap_password_manager - can list users, groups and change password of not protected users
+- authelia_user_manager - lldap_password_manager access rights + can create, edit and delete users, can change memeberhip and password of non protected users
+- lldap_admin - full access rights
+
 ### Environment Variables
 
 ### Mandatory settings for non-development environment
@@ -43,6 +50,7 @@ You need to specify only the following environment variables for a minimal insta
 | `PORT` | Server port | `9093` |
 | `HOST` | Server host | `0.0.0.0` |
 | `AAD_CONFIG_PATH` | Path to config.yml | `/opt/authelia-admin/config.yml` |
+| `AAD_LOGLEVEL` | Logging level | `WARN` |
 
 #### Authelia Integration
 
@@ -77,6 +85,10 @@ You need to specify only the following environment variables for a minimal insta
 Example of `config.yml` for authelia-admin:
 
 ```yaml
+# Logging level (DEBUG, INFO, WARN, ERROR). Default: WARN
+# Can be overridden by AAD_LOGLEVEL environment variable
+logging_level: WARN
+
 authelia:
   # Domain where Authelia is accessible
   domain: auth.localhost.test
@@ -113,6 +125,7 @@ docker run -p 9093:9093 \
   -v /path/to/authelia/config:/config \
   -v /path/to/authelia/data:/data \
   -v /path/to/authelia-admin/config.yml:/opt/authelia-admin/config.yml:ro \
+  -e AAD_LOGLEVEL=DEBUG \
   -e TRUSTED_ORIGINS=https://auth.yourdomain.com \
   ghcr.io/asalimonov/authelia-admin:latest
 ```
@@ -123,6 +136,7 @@ Alternatively, using environment variables instead of a config file:
 docker run -p 9093:9093 \
   -v /path/to/authelia/config:/config \
   -v /path/to/authelia/data:/data \
+  -e AAD_LOGLEVEL=DEBUG \
   -e AAD_AUTHELIA_DOMAIN=auth.yourdomain.com \
   -e AAD_DIRECTORY_LLDAP_GRAPHQL_ENDPOINT=http://lldap:17170/api/graphql \
   -e AAD_DIRECTORY_LLDAP_GRAPHQL_USER=admin \

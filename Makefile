@@ -56,6 +56,7 @@ run-dev: network build-dev ## Run development Docker container with hot-reload
 		-v $(PWD):/app \
 		-v /app/node_modules \
 		-v $(PWD)/test-configs/config.yml:/opt/authelia-admin/config.yml:ro \
+		-e AAD_LOGLEVEL=DEBUG \
 		--network $(DOCKER_NETWORK_NAME) \
 		-v ./test-configs/authelia:/config \
 		-v ./.test-data/authelia:/data \
