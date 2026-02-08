@@ -17,11 +17,17 @@ export const load: PageServerLoad = async ({ url }) => {
             };
         }
 
+        const dbInfo = dbConfig.type === 'sqlite'
+            ? dbConfig.path ?? null
+            : dbConfig.type === 'postgres' && dbConfig.postgres
+                ? `PostgreSQL: ${dbConfig.postgres.host}:${dbConfig.postgres.port}/${dbConfig.postgres.database}`
+                : null;
+
         const adapter = await createDatabaseAdapter(dbConfig);
-        
+
         try {
             const history = await adapter.getTOTPHistory(limit);
-            
+
             // Group history by username for better visualization
             const groupedHistory = history.reduce((acc, entry) => {
                 if (!acc[entry.username]) {
@@ -30,7 +36,7 @@ export const load: PageServerLoad = async ({ url }) => {
                 acc[entry.username].push(entry);
                 return acc;
             }, {} as Record<string, typeof history>);
-            
+
             // Get statistics
             const stats = {
                 totalEntries: history.length,
@@ -38,11 +44,11 @@ export const load: PageServerLoad = async ({ url }) => {
                 mostRecentUse: history[0]?.created_at || null,
                 oldestEntry: history[history.length - 1]?.created_at || null
             };
-            
+
             return {
                 error: null,
                 storageType: dbConfig.type,
-                dbPath: dbConfig.path,
+                dbInfo,
                 history,
                 groupedHistory,
                 stats,

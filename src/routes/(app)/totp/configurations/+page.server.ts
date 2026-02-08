@@ -15,15 +15,21 @@ export const load: PageServerLoad = async () => {
             };
         }
 
+        const dbInfo = dbConfig.type === 'sqlite'
+            ? dbConfig.path ?? null
+            : dbConfig.type === 'postgres' && dbConfig.postgres
+                ? `PostgreSQL: ${dbConfig.postgres.host}:${dbConfig.postgres.port}/${dbConfig.postgres.database}`
+                : null;
+
         const adapter = await createDatabaseAdapter(dbConfig);
-        
+
         try {
             const configurations = await adapter.getTOTPConfigurations();
-            
+
             return {
                 error: null,
                 storageType: dbConfig.type,
-                dbPath: dbConfig.path,
+                dbInfo,
                 configurations: configurations.map(config => ({
                     ...config,
                     created_at: config.created_at,
