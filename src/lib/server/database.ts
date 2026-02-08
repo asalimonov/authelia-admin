@@ -47,10 +47,19 @@ export interface BannedIP {
     reason: string | null;
 }
 
+export interface PostgresConfig {
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    schema?: string;
+}
+
 export interface DatabaseConfig {
     type: 'sqlite' | 'postgres';
     path?: string;
-    connectionString?: string;
+    postgres?: PostgresConfig;
 }
 
 export interface DatabaseAdapter {
@@ -312,10 +321,30 @@ export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
         }
 
         if (config.storage.postgres) {
-            log.debug('Using PostgreSQL database');
+            const pg = config.storage.postgres;
+            let host = 'localhost';
+            let port = 5432;
+
+            if (pg.address) {
+                // Authelia uses 'tcp://host:port' format - replace tcp:// with http:// for URL parsing
+                const url = new URL(pg.address.replace(/^tcp:\/\//, 'http://'));
+                host = url.hostname;
+                port = url.port ? parseInt(url.port, 10) : 5432;
+            } else if (pg.host) {
+                // Legacy Authelia config with plain host field
+                host = pg.host;
+                port = pg.port ? parseInt(String(pg.port), 10) : 5432;
+            }
+
+            const database = pg.database || 'authelia';
+            const username = pg.username || 'authelia';
+            const password = pg.password || '';
+            const schema = pg.schema || 'public';
+
+            log.debug(`Using PostgreSQL database: ${host}:${port}/${database}`);
             return {
                 type: 'postgres',
-                connectionString: config.storage.postgres.host
+                postgres: { host, port, database, username, password, schema }
             };
         }
 
