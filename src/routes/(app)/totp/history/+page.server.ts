@@ -5,7 +5,8 @@ import * as m from '$lib/paraglide/messages';
 export const load: PageServerLoad = async ({ url }) => {
     try {
         // Get limit from query params, default to 100
-        const limit = parseInt(url.searchParams.get('limit') || '100');
+        const parsedLimit = parseInt(url.searchParams.get('limit') || '100', 10);
+        const limit = (!isNaN(parsedLimit) && parsedLimit > 0) ? Math.min(parsedLimit, 10000) : 100;
         
         const dbConfig = await getDatabaseConfig();
         

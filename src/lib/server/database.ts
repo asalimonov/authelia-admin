@@ -545,7 +545,7 @@ export function getDatabaseDisplayInfo(config: DatabaseConfig): string | null {
 
 export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
     try {
-        const configPath = process.env.AUTHELIA_CONFIG_PATH || '/config/configuration.yml';
+        const configPath = process.env.AAD_AUTHELIA_CONFIG_PATH || '/config/configuration.yml';
         const configContent = await fs.readFile(configPath, 'utf-8');
         const config = parse(configContent);
 
@@ -646,6 +646,5 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
                 new Promise(resolve => setTimeout(resolve, 5000))
             ]);
         } catch { /* ignore shutdown errors */ }
-        process.exit(0);
     });
 }

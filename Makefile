@@ -130,15 +130,21 @@ test-e2e-run: ## Run Playwright E2E tests (assumes stack is running)
 test-e2e: build ## Full E2E: build, start stack, run tests, tear down (SQLite + PostgreSQL)
 	@echo "=== Phase 1: SQLite E2E tests ==="
 	SQLITE_EXIT=1; PG_EXIT=1; \
-	$(MAKE) test-e2e-up && \
-	npx playwright test --config=e2e/playwright.config.ts; \
-	SQLITE_EXIT=$$?; \
+	if $(MAKE) test-e2e-up; then \
+		npx playwright test --config=e2e/playwright.config.ts; \
+		SQLITE_EXIT=$$?; \
+	else \
+		echo "SQLite stack startup failed"; \
+	fi; \
 	$(MAKE) test-e2e-down; \
 	rm -rf ./.test-data/lldap ./.test-data/authelia; \
 	echo "=== Phase 2: PostgreSQL E2E tests ==="; \
-	$(MAKE) test-e2e-pg-up && \
-	npx playwright test --config=e2e/playwright.config.ts; \
-	PG_EXIT=$$?; \
+	if $(MAKE) test-e2e-pg-up; then \
+		npx playwright test --config=e2e/playwright.config.ts; \
+		PG_EXIT=$$?; \
+	else \
+		echo "PostgreSQL stack startup failed"; \
+	fi; \
 	$(MAKE) test-e2e-pg-down; \
 	rm -rf ./.test-data/lldap; \
 	if [ $$SQLITE_EXIT -ne 0 ] || [ $$PG_EXIT -ne 0 ]; then \
