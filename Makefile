@@ -9,6 +9,7 @@ DOCKER_CI_IMAGE_TAG ?= latest
 DOCKER_PORT ?= 9093
 DOCKER_NETWORK_NAME ?= authelia
 DOCKER_NETWORK_CIDR ?= 192.168.38.0/24
+DOCKER_TEST_COMPOSE_FILE ?= docker-compose.test.yml
 
 
 .PHONY: network
@@ -96,6 +97,30 @@ run-docker-compose: network ## Run docker compose with network dependencies with
 	(sleep 5 && docker compose exec -T lldap /bootstrap/bootstrap.sh) &
 	docker compose up
 
+.PHONY: test-e2e-up
+test-e2e-up: network ## Start E2E test stack (docker-compose.test.yml)
+	mkdir -p ./.test-data/lldap
+	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
+	(sleep 5 && docker compose -f $(DOCKER_TEST_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh) &
+	docker compose -f $(DOCKER_TEST_COMPOSE_FILE) up -d
+	./scripts/wait-for-services.sh
+
+.PHONY: test-e2e-down
+test-e2e-down: ## Stop and remove E2E test stack
+	docker compose -f $(DOCKER_TEST_COMPOSE_FILE) down
+
+.PHONY: test-e2e-run
+test-e2e-run: ## Run Playwright E2E tests (assumes stack is running)
+	npx playwright test --config=e2e/playwright.config.ts
+
+.PHONY: test-e2e
+test-e2e: build ## Full E2E: build, start stack, run tests, tear down
+	$(MAKE) test-e2e-up && \
+	npx playwright test --config=e2e/playwright.config.ts; \
+	EXIT_CODE=$$?; \
+	$(MAKE) test-e2e-down; \
+	exit $$EXIT_CODE
+
 .PHONY: all
 all: build ## Build docker image
 
@@ -115,7 +140,7 @@ clean: ## Clean up Docker images and local files
 
 .PHONY: help
 help:	## Print help
-		@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+		@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 define print-target
     @printf "Executing target: \033[36m$@\033[0m\n"

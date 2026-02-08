@@ -1,0 +1,16 @@
+http:
+  routers:
+    lldap_http_internal:
+      rule: Host(`ldap.localhost.test`)
+      service: svc_lldap_http
+      priority: 20
+      tls: true
+      entryPoints:
+        - web
+
+  services:
+    svc_lldap_http:
+      loadBalancer:
+        servers:
+          - url: http://lldap:17170
+        passHostHeader: true

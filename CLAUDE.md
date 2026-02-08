@@ -85,10 +85,23 @@ make test-small    # Run unit tests only
 make test-medium   # Run functional tests only
 make test-lint     # Run ESLint on TypeScript code
 
+# E2E Testing (Playwright)
+make test-e2e      # Full cycle: build image, start stack, run tests, tear down
+make test-e2e-up   # Start E2E test stack (docker-compose.test.yml)
+make test-e2e-down # Stop and remove E2E test stack
+make test-e2e-run  # Run Playwright E2E tests (assumes stack is running)
+
 # Cleanup
 make clean         # Clean up images and local files
 make network-remove # Remove Docker network
 ```
+
+### E2E Test Prerequisites
+
+- `/etc/hosts` entries: `127.0.0.1 localhost.test auth.localhost.test ldap.localhost.test`
+- Docker and Docker Compose installed
+- Production image built with `make build`
+- Chromium installed: `npx playwright install chromium`
 
 ## Architecture
 

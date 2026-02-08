@@ -1,0 +1,36 @@
+http:
+  routers:
+    auth_http:
+      rule: Host(`auth.localhost.test`)
+      service: svc_authelia_http
+      priority: 10
+      tls: true
+      entryPoints:
+        - web
+      middlewares:
+        - authelia-cors
+
+  services:
+    svc_authelia_http:
+      loadBalancer:
+        servers:
+          - url: http://authelia:9091
+        passHostHeader: true
+
+  middlewares:
+    authelia-cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - OPTIONS
+          - POST
+          - PUT
+          - DELETE
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowOriginList:
+          - "https://localhost.test"
+          - "https://*.localhost.test"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 86400
+        addVaryHeader: true

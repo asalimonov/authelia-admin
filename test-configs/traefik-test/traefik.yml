@@ -1,0 +1,27 @@
+## STATIC CONFIGURATION
+log:
+  level: WARN
+
+api:
+  insecure: true
+  dashboard: true
+
+entryPoints:
+  web:
+    address: :443
+    http:
+      tls: {}
+
+accesslog:
+  addInternals: true
+  filePath: "/var/log/traefik/access.log"
+  bufferingSize: 100
+  format: json
+  fields:
+    defaultMode: keep
+
+# Dynamic configuration
+providers:
+  file:
+    directory: /FileProvider
+    watch: true

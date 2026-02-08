@@ -166,6 +166,15 @@ make run-dev
 
 Use `admin` user with `admin1234` password. The confirmation code can be found in the `./test-data/authelia/notification.txt` file.
 
+### E2E Test Prerequisites
+
+- `/etc/hosts` entries: `127.0.0.1 localhost.test auth.localhost.test ldap.localhost.test`
+- Docker and Docker Compose installed
+- Production image built with `make build`
+- Chromium installed: `npx playwright install chromium`
+
+Run Playwright UI - `npx playwright test --config=e2e/playwright.config.ts --ui --project=chromium`
+
 ## Requirements
 
 - Node.js 22+
@@ -176,6 +185,5 @@ Use `admin` user with `admin1234` password. The confirmation code can be found i
 ## Security Notes
 
 >[!IMPORTANT]
-Due to the age and experimental nature of the project, I don't recommend using it for public deployment or for installations with many users.
 
 This application requires administrative access to Authelia's configuration and database. It should be deployed behind proper authentication and only accessible by authorized administrators.
