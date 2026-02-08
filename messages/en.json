@@ -112,6 +112,7 @@
   "common_delete": "Delete",
   "common_deleting": "Deleting...",
   "common_error": "Error",
+  "common_invalid_id": "Invalid ID",
   "common_invalid_expiration_date": "Invalid expiration date",
   "common_never": "Never",
   "common_required": "*",

@@ -112,6 +112,7 @@
   "common_delete": "Удалить",
   "common_deleting": "Удаление...",
   "common_error": "Ошибка",
+  "common_invalid_id": "Неверный идентификатор",
   "common_invalid_expiration_date": "Неверная дата истечения",
   "common_never": "Никогда",
   "common_required": "*",

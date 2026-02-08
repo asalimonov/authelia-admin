@@ -9,6 +9,8 @@ import { createLogger } from './logger';
 // OID 1114 = TIMESTAMP, OID 1184 = TIMESTAMPTZ
 pg.types.setTypeParser(1114, (val: string) => val);
 pg.types.setTypeParser(1184, (val: string) => val);
+// OID 20 = INT8/BIGINT — pg returns these as strings by default; parse to number
+pg.types.setTypeParser(20, (val: string) => parseInt(val, 10));
 
 const log = createLogger('database');
 

@@ -104,17 +104,22 @@ export const actions: Actions = {
             if (!id) {
                 return fail(400, { error: m.common_ban_id_required() });
             }
-            
+
+            const numericId = parseInt(id, 10);
+            if (isNaN(numericId)) {
+                return fail(400, { error: m.common_invalid_id() });
+            }
+
             const dbConfig = await getDatabaseConfig();
-            
+
             if (!dbConfig) {
                 return fail(500, { error: m.db_config_not_found() });
             }
-            
+
             const adapter = await createDatabaseAdapter(dbConfig);
 
             try {
-                const success = await adapter.deleteBannedIP(parseInt(id));
+                const success = await adapter.deleteBannedIP(numericId);
                 
                 if (!success) {
                     return fail(404, { error: m.banned_ip_not_found() });

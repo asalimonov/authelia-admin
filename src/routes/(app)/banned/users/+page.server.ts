@@ -101,6 +101,11 @@ export const actions: Actions = {
                 return fail(400, { error: m.common_ban_id_required() });
             }
 
+            const numericId = parseInt(id, 10);
+            if (isNaN(numericId)) {
+                return fail(400, { error: m.common_invalid_id() });
+            }
+
             const dbConfig = await getDatabaseConfig();
 
             if (!dbConfig) {
@@ -110,7 +115,7 @@ export const actions: Actions = {
             const adapter = await createDatabaseAdapter(dbConfig);
 
             try {
-                const success = await adapter.deleteBannedUser(parseInt(id));
+                const success = await adapter.deleteBannedUser(numericId);
 
                 if (!success) {
                     return fail(404, { error: m.banned_user_not_found() });
