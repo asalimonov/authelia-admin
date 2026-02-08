@@ -4,20 +4,41 @@ networks:
     name: authelia
 
 services:
+  postgres:
+    image: 'postgres:18-alpine'
+    networks:
+      authelia:
+        aliases:
+          - postgres
+    container_name: 'postgres'
+    restart: no
+    environment:
+      - POSTGRES_DB=authelia
+      - POSTGRES_USER=authelia
+      - POSTGRES_PASSWORD=authelia_test_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authelia -d authelia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   authelia:
     networks:
       authelia:
         aliases:
           - authelia
     depends_on:
-      - lldap
+      lldap:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     image: 'docker.io/authelia/authelia:4.39.6'
     container_name: 'authelia'
     restart: unless-stopped
     ports:
       - "9091:9091"
     volumes:
-      - './test-configs/authelia:/config'
+      - './test-configs/authelia-pg:/config'
       - './.test-data/authelia:/data'
       - '/var/log/authelia:/var/log/authelia'
     environment:
@@ -46,8 +67,7 @@ services:
       - "9093:9093"
     volumes:
       - './test-configs/config.yml:/opt/authelia-admin/config.yml:ro'
-      - './test-configs/authelia:/config'
-      - './.test-data/authelia:/data'
+      - './test-configs/authelia-pg:/config'
     environment:
       - TZ=UTC
       - NODE_TLS_REJECT_UNAUTHORIZED=0

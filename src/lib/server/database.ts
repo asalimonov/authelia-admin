@@ -1,8 +1,16 @@
 import { promises as fs } from 'node:fs';
 import { parse } from 'yaml';
 import sqlite3 from 'sqlite3';
+import pg from 'pg';
 import { promisify } from 'node:util';
 import { createLogger } from './logger';
+
+// Override pg type parsers to return ISO strings for timestamps (matching SQLite behavior)
+// OID 1114 = TIMESTAMP, OID 1184 = TIMESTAMPTZ
+pg.types.setTypeParser(1114, (val: string) => val);
+pg.types.setTypeParser(1184, (val: string) => val);
+// OID 20 = INT8/BIGINT — pg returns these as strings by default; parse to number
+pg.types.setTypeParser(20, (val: string) => parseInt(val, 10));
 
 const log = createLogger('database');
 
@@ -47,10 +55,19 @@ export interface BannedIP {
     reason: string | null;
 }
 
+export interface PostgresConfig {
+    host: string;
+    port: number;
+    database: string;
+    username: string;
+    password: string;
+    schema?: string;
+}
+
 export interface DatabaseConfig {
     type: 'sqlite' | 'postgres';
     path?: string;
-    connectionString?: string;
+    postgres?: PostgresConfig;
 }
 
 export interface DatabaseAdapter {
@@ -288,14 +305,257 @@ class SQLiteAdapter implements DatabaseAdapter {
     }
 
     async close(): Promise<void> {
+        // No-op: connection is long-lived and shared across requests.
+        // Cleanup happens on process exit via shutdownConnection().
+    }
+
+    async shutdownConnection(): Promise<void> {
         await this.dbClose();
     }
 }
 
+class PostgreSQLAdapter implements DatabaseAdapter {
+    private pool: pg.Pool;
+
+    private constructor(pool: pg.Pool) {
+        this.pool = pool;
+    }
+
+    static async create(config: PostgresConfig): Promise<PostgreSQLAdapter> {
+        const poolConfig: pg.PoolConfig = {
+            host: config.host,
+            port: config.port,
+            database: config.database,
+            user: config.username,
+            password: config.password,
+        };
+
+        if (config.schema && config.schema !== 'public') {
+            if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(config.schema)) {
+                throw new Error(`Invalid PostgreSQL schema name: ${config.schema}`);
+            }
+            poolConfig.options = `-c search_path=${config.schema}`;
+        }
+
+        const pool = new pg.Pool(poolConfig);
+
+        // Prevent unhandled errors on idle clients from crashing the process
+        pool.on('error', (err) => {
+            log.error('Unexpected error on idle PostgreSQL client:', err);
+        });
+
+        // Verify connection
+        try {
+            const client = await pool.connect();
+            client.release();
+        } catch (error) {
+            await pool.end();
+            throw error;
+        }
+
+        log.debug(`PostgreSQL pool created: ${config.host}:${config.port}/${config.database}`);
+        return new PostgreSQLAdapter(pool);
+    }
+
+    async getTOTPConfigurations(): Promise<TOTPConfiguration[]> {
+        const query = `
+            SELECT
+                id,
+                created_at,
+                last_used_at,
+                username,
+                issuer,
+                algorithm,
+                digits,
+                period,
+                secret
+            FROM totp_configurations
+            ORDER BY username ASC
+        `;
+
+        try {
+            const result = await this.pool.query(query);
+            return result.rows.map((row: TOTPConfiguration) => ({
+                ...row,
+                secret: Buffer.from('[ENCRYPTED]')
+            }));
+        } catch (error) {
+            log.error('Error reading TOTP configurations:', error);
+            throw error;
+        }
+    }
+
+    async deleteTOTPConfiguration(id: number): Promise<boolean> {
+        const query = `DELETE FROM totp_configurations WHERE id = $1`;
+
+        try {
+            const result = await this.pool.query(query, [id]);
+            return (result.rowCount ?? 0) > 0;
+        } catch (error) {
+            log.error('Error deleting TOTP configuration:', error);
+            throw error;
+        }
+    }
+
+    async getTOTPHistory(limit = 100): Promise<TOTPHistory[]> {
+        const query = `
+            SELECT
+                id,
+                created_at,
+                username,
+                step
+            FROM totp_history
+            ORDER BY created_at DESC
+            LIMIT $1
+        `;
+
+        try {
+            const result = await this.pool.query(query, [limit]);
+            return result.rows as TOTPHistory[];
+        } catch (error) {
+            log.error('Error reading TOTP history:', error);
+            throw error;
+        }
+    }
+
+    async getBannedUsers(): Promise<BannedUser[]> {
+        const query = `
+            SELECT
+                id,
+                time,
+                expires,
+                expired,
+                revoked,
+                username,
+                source,
+                reason
+            FROM banned_user
+            ORDER BY time DESC
+        `;
+
+        try {
+            const result = await this.pool.query(query);
+            return result.rows as BannedUser[];
+        } catch (error) {
+            log.error('Error reading banned users:', error);
+            throw error;
+        }
+    }
+
+    async createBannedUser(username: string, expires: Date | null, source: string, reason: string | null): Promise<boolean> {
+        const query = `
+            INSERT INTO banned_user (username, expires, source, reason)
+            VALUES ($1, $2, $3, $4)
+        `;
+
+        try {
+            await this.pool.query(query, [username, expires, source, reason]);
+            return true;
+        } catch (error) {
+            log.error('Error creating banned user:', error);
+            throw error;
+        }
+    }
+
+    async deleteBannedUser(id: number): Promise<boolean> {
+        const query = `DELETE FROM banned_user WHERE id = $1`;
+
+        try {
+            const result = await this.pool.query(query, [id]);
+            return (result.rowCount ?? 0) > 0;
+        } catch (error) {
+            log.error('Error deleting banned user:', error);
+            throw error;
+        }
+    }
+
+    async getBannedIPs(): Promise<BannedIP[]> {
+        const query = `
+            SELECT
+                id,
+                time,
+                expires,
+                expired,
+                revoked,
+                ip,
+                source,
+                reason
+            FROM banned_ip
+            ORDER BY time DESC
+        `;
+
+        try {
+            const result = await this.pool.query(query);
+            return result.rows as BannedIP[];
+        } catch (error) {
+            log.error('Error reading banned IPs:', error);
+            throw error;
+        }
+    }
+
+    async createBannedIP(ip: string, expires: Date | null, source: string, reason: string | null): Promise<boolean> {
+        const query = `
+            INSERT INTO banned_ip (ip, expires, source, reason)
+            VALUES ($1, $2, $3, $4)
+        `;
+
+        try {
+            await this.pool.query(query, [ip, expires, source, reason]);
+            return true;
+        } catch (error) {
+            log.error('Error creating banned IP:', error);
+            throw error;
+        }
+    }
+
+    async deleteBannedIP(id: number): Promise<boolean> {
+        const query = `DELETE FROM banned_ip WHERE id = $1`;
+
+        try {
+            const result = await this.pool.query(query, [id]);
+            return (result.rowCount ?? 0) > 0;
+        } catch (error) {
+            log.error('Error deleting banned IP:', error);
+            throw error;
+        }
+    }
+
+    async healthCheck(): Promise<void> {
+        try {
+            await this.pool.query('SELECT 1');
+        } catch (error) {
+            log.error('Database health check failed:', error);
+            throw error;
+        }
+    }
+
+    async close(): Promise<void> {
+        // No-op: pool is long-lived and shared across requests.
+        // Pool cleanup happens on process exit via shutdownPool().
+    }
+
+    async shutdownPool(): Promise<void> {
+        await this.pool.end();
+    }
+}
+
+
+// Cached config — Authelia config file doesn't change at runtime
+let cachedConfigPromise: Promise<DatabaseConfig | null> | null = null;
 
 export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
+    if (!cachedConfigPromise) {
+        cachedConfigPromise = readDatabaseConfig().catch((err) => {
+            cachedConfigPromise = null;
+            throw err;
+        });
+    }
+    return cachedConfigPromise;
+}
+
+async function readDatabaseConfig(): Promise<DatabaseConfig | null> {
     try {
-        const configPath = process.env.AUTHELIA_CONFIG_PATH || '/config/configuration.yml';
+        const configPath = process.env.AAD_AUTHELIA_CONFIG_PATH || process.env.AUTHELIA_CONFIG_PATH || '/config/configuration.yml';
         const configContent = await fs.readFile(configPath, 'utf-8');
         const config = parse(configContent);
 
@@ -312,10 +572,30 @@ export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
         }
 
         if (config.storage.postgres) {
-            log.debug('Using PostgreSQL database');
+            const pgStorage = config.storage.postgres;
+            let host = 'localhost';
+            let port = 5432;
+
+            if (pgStorage.address) {
+                // Authelia uses 'tcp://host:port' format - replace tcp:// with http:// for URL parsing
+                const url = new URL(pgStorage.address.replace(/^tcp:\/\//, 'http://'));
+                host = url.hostname;
+                port = url.port ? parseInt(url.port, 10) : 5432;
+            } else if (pgStorage.host) {
+                // Legacy Authelia config with plain host field
+                host = pgStorage.host;
+                port = pgStorage.port ? parseInt(String(pgStorage.port), 10) : 5432;
+            }
+
+            const database = pgStorage.database || 'authelia';
+            const username = pgStorage.username || 'authelia';
+            const password = pgStorage.password || '';
+            const schema = pgStorage.schema || 'public';
+
+            log.debug(`Using PostgreSQL database: ${host}:${port}/${database}`);
             return {
                 type: 'postgres',
-                connectionString: config.storage.postgres.host
+                postgres: { host, port, database, username, password, schema }
             };
         }
 
@@ -326,6 +606,10 @@ export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
     }
 }
 
+// Singleton adapters — connections are long-lived and shared across requests
+let sqliteAdapterPromise: Promise<SQLiteAdapter> | null = null;
+let pgAdapterPromise: Promise<PostgreSQLAdapter> | null = null;
+
 export async function createDatabaseAdapter(config: DatabaseConfig): Promise<DatabaseAdapter> {
     switch (config.type) {
         case 'sqlite':
@@ -333,15 +617,61 @@ export async function createDatabaseAdapter(config: DatabaseConfig): Promise<Dat
                 log.error('SQLite database path is required')
                 throw new Error('SQLite database path is required');
             }
-            return await SQLiteAdapter.create(config.path);
-        case 'postgres':
-            if (!config.connectionString) {
-                log.error('PostgreSQL connection string is required')
-                throw new Error('PostgreSQL connection string is required');
+            if (!sqliteAdapterPromise) {
+                sqliteAdapterPromise = SQLiteAdapter.create(config.path).catch((err) => {
+                    sqliteAdapterPromise = null;
+                    throw err;
+                });
             }
-            return new PostgreSQLAdapter(config.connectionString);
+            return await sqliteAdapterPromise;
+        case 'postgres':
+            if (!config.postgres) {
+                log.error('PostgreSQL configuration is required')
+                throw new Error('PostgreSQL configuration is required');
+            }
+            if (!pgAdapterPromise) {
+                pgAdapterPromise = PostgreSQLAdapter.create(config.postgres).catch((err) => {
+                    pgAdapterPromise = null;
+                    throw err;
+                });
+            }
+            return await pgAdapterPromise;
         default:
             log.error('Unsupported database type:', config.type)
             throw new Error(`Unsupported database type: ${config.type}`);
     }
+}
+
+export async function shutdownDatabase(): Promise<void> {
+    if (sqliteAdapterPromise) {
+        try {
+            const adapter = await sqliteAdapterPromise;
+            await adapter.shutdownConnection();
+        } catch {
+            // Creation may have failed; nothing to shut down
+        }
+        sqliteAdapterPromise = null;
+    }
+    if (pgAdapterPromise) {
+        try {
+            const adapter = await pgAdapterPromise;
+            await adapter.shutdownPool();
+        } catch {
+            // Pool creation may have failed; nothing to shut down
+        }
+        pgAdapterPromise = null;
+    }
+}
+
+// Graceful shutdown: drain PostgreSQL pool on process exit
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(signal, async () => {
+        try {
+            await Promise.race([
+                shutdownDatabase(),
+                new Promise(resolve => setTimeout(resolve, 5000).unref())
+            ]);
+        } catch { /* ignore shutdown errors */ }
+        process.exit(0);
+    });
 }

@@ -30,7 +30,7 @@ RUN npm ci --omit=dev && \
     rm -rf /root/.npm
 
 # Production stage - minimal Alpine with Node.js (no compilation needed here)
-FROM alpine:3.22
+FROM alpine:3.23
 
 RUN apk add --no-cache nodejs curl
 WORKDIR /app

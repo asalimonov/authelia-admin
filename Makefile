@@ -10,6 +10,7 @@ DOCKER_PORT ?= 9093
 DOCKER_NETWORK_NAME ?= authelia
 DOCKER_NETWORK_CIDR ?= 192.168.38.0/24
 DOCKER_TEST_COMPOSE_FILE ?= docker-compose.test.yml
+DOCKER_TEST_PG_COMPOSE_FILE ?= docker-compose.test-pg.yml
 
 
 .PHONY: network
@@ -33,6 +34,7 @@ build: ## Build production Docker image (self-contained, no pre-build required)
 		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
 	fi
 	docker build --network=host -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
+	docker tag $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) ghcr.io/asalimonov/authelia-admin:latest
 
 .PHONY: build-dev
 build-dev: ## Build development Docker image
@@ -109,17 +111,47 @@ test-e2e-up: network ## Start E2E test stack (docker-compose.test.yml)
 test-e2e-down: ## Stop and remove E2E test stack
 	docker compose -f $(DOCKER_TEST_COMPOSE_FILE) down
 
+.PHONY: test-e2e-pg-up
+test-e2e-pg-up: network ## Start PostgreSQL E2E test stack
+	mkdir -p ./.test-data/lldap
+	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
+	(sleep 5 && docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh) &
+	docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) up -d
+	./scripts/wait-for-services.sh
+
+.PHONY: test-e2e-pg-down
+test-e2e-pg-down: ## Stop and remove PostgreSQL E2E test stack
+	docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) down
+
 .PHONY: test-e2e-run
 test-e2e-run: ## Run Playwright E2E tests (assumes stack is running)
 	npx playwright test --config=e2e/playwright.config.ts
 
 .PHONY: test-e2e
-test-e2e: build ## Full E2E: build, start stack, run tests, tear down
-	$(MAKE) test-e2e-up && \
-	npx playwright test --config=e2e/playwright.config.ts; \
-	EXIT_CODE=$$?; \
+test-e2e: build ## Full E2E: build, start stack, run tests, tear down (SQLite + PostgreSQL)
+	@echo "=== Phase 1: SQLite E2E tests ==="
+	SQLITE_EXIT=1; PG_EXIT=1; \
+	if $(MAKE) test-e2e-up; then \
+		npx playwright test --config=e2e/playwright.config.ts; \
+		SQLITE_EXIT=$$?; \
+	else \
+		echo "SQLite stack startup failed"; \
+	fi; \
 	$(MAKE) test-e2e-down; \
-	exit $$EXIT_CODE
+	rm -rf ./.test-data/lldap ./.test-data/authelia; \
+	echo "=== Phase 2: PostgreSQL E2E tests ==="; \
+	if $(MAKE) test-e2e-pg-up; then \
+		npx playwright test --config=e2e/playwright.config.ts; \
+		PG_EXIT=$$?; \
+	else \
+		echo "PostgreSQL stack startup failed"; \
+	fi; \
+	$(MAKE) test-e2e-pg-down; \
+	rm -rf ./.test-data/lldap ./.test-data/authelia; \
+	if [ $$SQLITE_EXIT -ne 0 ] || [ $$PG_EXIT -ne 0 ]; then \
+		echo "E2E tests failed: SQLite=$$SQLITE_EXIT, PostgreSQL=$$PG_EXIT"; \
+		exit 1; \
+	fi
 
 .PHONY: all
 all: build ## Build docker image

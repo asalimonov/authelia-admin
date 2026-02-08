@@ -18,8 +18,16 @@ A web-based administration interface for managing Authelia authentication server
 ### Not yet implemented
 
 - Management of attributes of users and groups
-- PostgreSQL engine for Authelia
 - Browsing and management of users in Authelia file provider
+
+### How to run locally with PostgreSQL
+
+- checkout the repository
+- `/etc/hosts` entries: `127.0.0.1 localhost.test auth.localhost.test ldap.localhost.test`
+- Run in the first termainl: `docker-compose -f docker-compose.test-pg.yml up`
+- Run in the second terminal: sleep 5 && docker compose -f docker-compose.test-pg.yml exec -T lldap /bootstrap/bootstrap.sh
+- Close the second terminal
+- Open `https://auth.localhost.test` and login, then go to `https://auth.localhost.test/auth-admin`
 
 ## Configuration
 
@@ -57,6 +65,7 @@ You need to specify only the following environment variables for a minimal insta
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `AAD_AUTHELIA_DOMAIN` | Authelia domain for authentication | `auth.localhost.test` |
+| `AAD_AUTHELIA_CONFIG_PATH` | Path to Authelia's `configuration.yml` | `/config/configuration.yml` |
 | `AAD_AUTHELIA_COOKIE_NAME` | Session cookie name | `authelia_session` |
 | `AAD_AUTHELIA_MIN_AUTH_LEVEL` | Minimum auth level (1=password, 2=2FA) | `2` |
 | `AAD_AUTHELIA_ALLOWED_USERS` | Comma-separated list of allowed users | (empty = all users) |
@@ -181,9 +190,3 @@ Run Playwright UI - `npx playwright test --config=e2e/playwright.config.ts --ui 
 - Access to Authelia's configuration file
 - Access to Authelia's SQLite database
 - Access to GraphQL and LDAP interfaces of LLDAP
-
-## Security Notes
-
->[!IMPORTANT]
-
-This application requires administrative access to Authelia's configuration and database. It should be deployed behind proper authentication and only accessible by authorized administrators.

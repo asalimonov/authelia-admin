@@ -11,28 +11,17 @@ export const load: PageServerLoad = async () => {
         if (!dbConfig) {
             return {
                 error: m.db_config_not_found(),
-                storageType: null,
                 bannedIPs: []
             };
         }
 
-        if (dbConfig.type !== 'sqlite') {
-            return {
-                error: m.db_type_not_supported({ dbType: dbConfig.type }),
-                storageType: dbConfig.type,
-                bannedIPs: []
-            };
-        }
-        
         const adapter = await createDatabaseAdapter(dbConfig);
-        
+
         try {
             const bannedIPs = await adapter.getBannedIPs();
-            
+
             return {
                 error: null,
-                storageType: dbConfig.type,
-                dbPath: dbConfig.path,
                 bannedIPs
             };
         } finally {
@@ -42,7 +31,6 @@ export const load: PageServerLoad = async () => {
     } catch (error) {
         return {
             error: m.banned_ips_load_failed({ error: (error as Error).message }),
-            storageType: null,
             bannedIPs: []
         };
     }
@@ -76,12 +64,8 @@ export const actions: Actions = {
                 return fail(500, { error: m.db_config_not_found() });
             }
             
-            if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
-            }
-            
             const adapter = await createDatabaseAdapter(dbConfig);
-            
+
             try {
                 let expiresDate: Date | null = null;
                 if (!isPermanent && expires) {
@@ -98,7 +82,7 @@ export const actions: Actions = {
                     return fail(500, { error: m.banned_ip_ban_failed({ ip }) });
                 }
                 
-                return { success: true, message: `IP "${ip}" has been banned` };
+                return { success: true, message: m.banned_ip_ban_success({ ip }) };
             } finally {
                 await adapter.close();
             }
@@ -118,27 +102,28 @@ export const actions: Actions = {
             if (!id) {
                 return fail(400, { error: m.common_ban_id_required() });
             }
-            
+
+            const numericId = parseInt(id, 10);
+            if (isNaN(numericId)) {
+                return fail(400, { error: m.common_invalid_id() });
+            }
+
             const dbConfig = await getDatabaseConfig();
-            
+
             if (!dbConfig) {
                 return fail(500, { error: m.db_config_not_found() });
             }
-            
-            if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
-            }
-            
+
             const adapter = await createDatabaseAdapter(dbConfig);
-            
+
             try {
-                const success = await adapter.deleteBannedIP(parseInt(id));
+                const success = await adapter.deleteBannedIP(numericId);
                 
                 if (!success) {
                     return fail(404, { error: m.banned_ip_not_found() });
                 }
                 
-                return { success: true, message: `Ban for IP "${ip}" has been deleted` };
+                return { success: true, message: m.banned_ip_delete_success({ ip: ip || '' }) };
             } finally {
                 await adapter.close();
             }

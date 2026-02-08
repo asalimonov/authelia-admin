@@ -11,28 +11,17 @@ export const load: PageServerLoad = async () => {
         if (!dbConfig) {
             return {
                 error: m.db_config_not_found(),
-                storageType: null,
                 bannedUsers: []
             };
         }
 
-        if (dbConfig.type !== 'sqlite') {
-            return {
-                error: m.db_type_not_supported({ dbType: dbConfig.type }),
-                storageType: dbConfig.type,
-                bannedUsers: []
-            };
-        }
-        
         const adapter = await createDatabaseAdapter(dbConfig);
-        
+
         try {
             const bannedUsers = await adapter.getBannedUsers();
-            
+
             return {
                 error: null,
-                storageType: dbConfig.type,
-                dbPath: dbConfig.path,
                 bannedUsers
             };
         } finally {
@@ -42,7 +31,6 @@ export const load: PageServerLoad = async () => {
     } catch (error) {
         return {
             error: m.banned_users_load_failed({ error: (error as Error).message }),
-            storageType: null,
             bannedUsers: []
         };
     }
@@ -72,12 +60,8 @@ export const actions: Actions = {
                 return fail(500, { error: m.db_config_not_found() });
             }
 
-            if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
-            }
-            
             const adapter = await createDatabaseAdapter(dbConfig);
-            
+
             try {
                 let expiresDate: Date | null = null;
                 if (!isPermanent && expires) {
@@ -115,20 +99,21 @@ export const actions: Actions = {
                 return fail(400, { error: m.common_ban_id_required() });
             }
 
+            const numericId = parseInt(id, 10);
+            if (isNaN(numericId)) {
+                return fail(400, { error: m.common_invalid_id() });
+            }
+
             const dbConfig = await getDatabaseConfig();
 
             if (!dbConfig) {
                 return fail(500, { error: m.db_config_not_found() });
             }
 
-            if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
-            }
-
             const adapter = await createDatabaseAdapter(dbConfig);
 
             try {
-                const success = await adapter.deleteBannedUser(parseInt(id));
+                const success = await adapter.deleteBannedUser(numericId);
 
                 if (!success) {
                     return fail(404, { error: m.banned_user_not_found() });

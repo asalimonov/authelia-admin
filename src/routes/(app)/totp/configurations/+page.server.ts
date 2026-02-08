@@ -10,28 +10,17 @@ export const load: PageServerLoad = async () => {
         if (!dbConfig) {
             return {
                 error: m.db_config_not_found(),
-                storageType: null,
                 configurations: []
             };
         }
 
-        if (dbConfig.type !== 'sqlite') {
-            return {
-                error: m.db_type_not_supported({ dbType: dbConfig.type }),
-                storageType: dbConfig.type,
-                configurations: []
-            };
-        }
-        
         const adapter = await createDatabaseAdapter(dbConfig);
-        
+
         try {
             const configurations = await adapter.getTOTPConfigurations();
-            
+
             return {
                 error: null,
-                storageType: dbConfig.type,
-                dbPath: dbConfig.path,
                 configurations: configurations.map(config => ({
                     ...config,
                     created_at: config.created_at,
@@ -46,7 +35,6 @@ export const load: PageServerLoad = async () => {
     } catch (error) {
         return {
             error: m.totp_configs_load_failed({ error: (error as Error).message }),
-            storageType: null,
             configurations: []
         };
     }
@@ -63,20 +51,21 @@ export const actions: Actions = {
                 return fail(400, { error: m.totp_config_id_required() });
             }
 
+            const numericId = parseInt(id, 10);
+            if (isNaN(numericId)) {
+                return fail(400, { error: m.common_invalid_id() });
+            }
+
             const dbConfig = await getDatabaseConfig();
 
             if (!dbConfig) {
                 return fail(500, { error: m.db_config_not_found() });
             }
 
-            if (dbConfig.type !== 'sqlite') {
-                return fail(501, { error: m.db_type_not_supported_short({ dbType: dbConfig.type }) });
-            }
-
             const adapter = await createDatabaseAdapter(dbConfig);
 
             try {
-                const success = await adapter.deleteTOTPConfiguration(parseInt(id));
+                const success = await adapter.deleteTOTPConfiguration(numericId);
 
                 if (!success) {
                     return fail(404, { error: m.totp_config_not_found() });
