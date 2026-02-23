@@ -20,7 +20,7 @@
     "@sveltejs/adapter-node": "^5.5.1",
     "@sveltejs/kit": "^2.50.2",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
-    "@tailwindcss/vite": "^4.1.12",
+    "@tailwindcss/vite": "^4.2.0",
     "@tsconfig/svelte": "^5.0.4",
     "@types/ldapjs": "^3.0.6",
     "@types/pg": "^8.16.0",
