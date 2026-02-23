@@ -24,7 +24,7 @@
     "@tsconfig/svelte": "^5.0.4",
     "@types/ldapjs": "^3.0.6",
     "@types/pg": "^8.16.0",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.1",
     "eslint-plugin-svelte": "2.46.1",
     "globals": "^16.2.0",
     "serve": "^14.2.5",
