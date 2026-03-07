@@ -27,7 +27,7 @@ export class LLDAPGraphQLClient {
 	private endpoint: string;
 	private user: string;
 	private password: string;
-	private client: ApolloClient<unknown> | null = null;
+	private client: ApolloClient | null = null;
 
 	constructor(config: LLDAPGraphQLConfig) {
 		this.endpoint = config.endpoint;
@@ -120,7 +120,7 @@ export class LLDAPGraphQLClient {
 	 * Get or create the Apollo Client instance.
 	 * Creates a new client with current token on each request to ensure fresh auth.
 	 */
-	private async getClient(): Promise<ApolloClient<unknown>> {
+	private async getClient(): Promise<ApolloClient> {
 		const token = await this.getToken();
 
 		// Always create a new client with fresh token to handle token refresh
@@ -161,12 +161,12 @@ export class LLDAPGraphQLClient {
 			variables
 		});
 
-		if (result.errors && result.errors.length > 0) {
-			log.error('GraphQL query error:', result.errors[0].message);
-			throw new Error(result.errors[0].message);
+		if (result.error) {
+			log.error('GraphQL query error:', result.error.message);
+			throw new Error(result.error.message);
 		}
 
-		return result.data;
+		return result.data as T;
 	}
 
 	/**
@@ -184,9 +184,9 @@ export class LLDAPGraphQLClient {
 			variables
 		});
 
-		if (result.errors && result.errors.length > 0) {
-			log.error('GraphQL mutation error:', result.errors[0].message);
-			throw new Error(result.errors[0].message);
+		if (result.error) {
+			log.error('GraphQL mutation error:', result.error.message);
+			throw new Error(result.error.message);
 		}
 
 		if (!result.data) {

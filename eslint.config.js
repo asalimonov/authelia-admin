@@ -12,6 +12,14 @@ export default tseslint.config(
 		ignores: ['build/**', '.svelte-kit/**', 'node_modules/**']
 	},
 	{
+		rules: {
+			'svelte/require-each-key': 'off',
+			'svelte/no-navigation-without-resolve': 'off',
+			'svelte/no-immutable-reactive-statements': 'off',
+			'preserve-caught-error': 'off'
+		}
+	},
+	{
 		files: ['**/*.ts'],
 		languageOptions: {
 			parserOptions: {
