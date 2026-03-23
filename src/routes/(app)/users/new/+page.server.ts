@@ -155,9 +155,25 @@ export const actions: Actions = {
 
             const newUser = await directoryService.createUser(createInput);
 
-            // TODO: Set password via LDAP after user creation
-            // The LLDAP GraphQL API doesn't support setting password during user creation
-            // We need to use LDAP to set the password after the user is created
+            // Set password via LDAP after user creation.
+            // The LLDAP GraphQL API doesn't support setting password during user creation,
+            // so we use changePassword (which uses LDAP protocol directly) right after.
+            const passwordResult = await directoryService.changePassword(newUser.id, password);
+            if (!passwordResult.success) {
+                // User was created but password couldn't be set — roll back by deleting the user
+                // so the admin doesn't end up with a user that has an unknown/empty password.
+                try {
+                    await directoryService.deleteUser(newUser.id);
+                } catch (deleteError) {
+                    console.error('Failed to roll back user creation after password error:', deleteError);
+                }
+                return fail(500, {
+                    error: m.user_create_password_error({
+                        error: passwordResult.error ?? 'unknown error'
+                    }),
+                    values: { userId, email, displayName, firstName, lastName }
+                });
+            }
 
             if (action === 'createAndNew') {
                 return {
