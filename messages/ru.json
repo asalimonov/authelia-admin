@@ -318,6 +318,7 @@
   "user_add_to_group_success": "Пользователь добавлен в группу",
   "user_already_exists": "Пользователь с идентификатором \"{userId}\" уже существует",
   "user_create_error": "Не удалось создать пользователя: {error}",
+  "user_create_password_error": "Пользователь создан, но установить пароль не удалось: {error}. Пользователь был удалён. Проверьте конфигурацию LDAP (ldap_host, ldap_port, ldap_base_dn) и повторите попытку.",
   "user_create_no_permission": "У вас нет прав на создание пользователей",
   "user_create_success": "Пользователь \"{userId}\" успешно создан",
   "user_delete_error": "Не удалось удалить пользователя: {error}",

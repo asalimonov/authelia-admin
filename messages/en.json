@@ -318,6 +318,7 @@
   "user_add_to_group_success": "User added to group successfully",
   "user_already_exists": "User with ID \"{userId}\" already exists",
   "user_create_error": "Failed to create user: {error}",
+  "user_create_password_error": "User was created but setting the password failed: {error}. The user has been removed. Please check LDAP configuration (ldap_host, ldap_port, ldap_base_dn) and try again.",
   "user_create_no_permission": "You do not have permission to create users",
   "user_create_success": "User \"{userId}\" created successfully",
   "user_delete_error": "Failed to delete user: {error}",
