@@ -24,7 +24,7 @@
     "@tailwindcss/vite": "^4.2.1",
     "@tsconfig/svelte": "^5.0.8",
     "@types/ldapjs": "^3.0.6",
-    "@types/pg": "^8.16.0",
+    "@types/pg": "^8.20.0",
     "eslint": "^10.0.3",
     "eslint-plugin-svelte": "^3.15.0",
     "globals": "^17.4.0",
