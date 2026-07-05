@@ -1,5 +1,5 @@
 import type { IDirectoryService } from './types';
-import type { DirectoryServiceConfig } from './config';
+import type { ServiceConfig } from './config';
 import { LLDAPGraphQLService } from './implementations/lldap-graphql';
 
 /**
@@ -14,7 +14,7 @@ export class DirectoryServiceFactory {
 	 * @returns An instance of IDirectoryService
 	 * @throws Error if the service type is not supported
 	 */
-	static create(config: DirectoryServiceConfig): IDirectoryService {
+	static create(config: ServiceConfig): IDirectoryService {
 		switch (config.type) {
 			case 'lldap-graphql':
 				return new LLDAPGraphQLService(config);

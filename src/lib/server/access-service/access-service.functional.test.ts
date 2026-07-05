@@ -24,6 +24,8 @@ const testConfig: LLDAPGraphQLConfig = {
     endpoint: process.env.LLDAP_ENDPOINT || 'http://lldap:17170/api/graphql',
     user: 'admin',
     password: 'admin1234',
+    ldap_host: process.env.LLDAP_HOST || 'lldap',
+    ldap_port: parseInt(process.env.LLDAP_PORT || '3890', 10),
 };
 
 // Disable TLS certificate verification for tests (self-signed cert)

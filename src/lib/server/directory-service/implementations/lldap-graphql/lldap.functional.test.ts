@@ -332,7 +332,9 @@ describe('LLDAPGraphQLService Functional Tests', () => {
 				type: 'lldap-graphql',
 				endpoint: testConfig.endpoint,
 				user: testUserId,
-				password: newPassword
+				password: newPassword,
+				ldap_host: testConfig.ldap_host,
+				ldap_port: testConfig.ldap_port
 			};
 
 			const testUserService = new LLDAPGraphQLService(testUserConfig);
@@ -362,7 +364,9 @@ describe('LLDAPGraphQLService Functional Tests', () => {
 				type: 'lldap-graphql',
 				endpoint: testConfig.endpoint,
 				user: testUserId,
-				password: firstPassword
+				password: firstPassword,
+				ldap_host: testConfig.ldap_host,
+				ldap_port: testConfig.ldap_port
 			};
 			const firstService = new LLDAPGraphQLService(firstConfig);
 			const firstConnection = await firstService.testConnection();
@@ -382,7 +386,9 @@ describe('LLDAPGraphQLService Functional Tests', () => {
 				type: 'lldap-graphql',
 				endpoint: testConfig.endpoint,
 				user: testUserId,
-				password: secondPassword
+				password: secondPassword,
+				ldap_host: testConfig.ldap_host,
+				ldap_port: testConfig.ldap_port
 			};
 			const secondService = new LLDAPGraphQLService(secondConfig);
 			const secondConnection = await secondService.testConnection();

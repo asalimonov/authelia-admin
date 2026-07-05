@@ -66,7 +66,8 @@ export const actions: Actions = {
 
             if (!permissionCheck.allowed) {
                 return fail(403, {
-                    error: permissionCheck.reason || m.user_create_no_permission()
+                    error: permissionCheck.reason || m.user_create_no_permission(),
+                    values: {} as { userId?: string; email?: string; displayName?: string; firstName?: string; lastName?: string }
                 });
             }
 
@@ -193,7 +194,8 @@ export const actions: Actions = {
 
             console.error('Error creating user:', error);
             return fail(500, {
-                error: m.user_create_error({ error: (error as Error).message })
+                error: m.user_create_error({ error: (error as Error).message }),
+                values: {} as { userId?: string; email?: string; displayName?: string; firstName?: string; lastName?: string }
             });
         }
     }

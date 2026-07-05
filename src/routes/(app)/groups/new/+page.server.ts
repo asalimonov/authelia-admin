@@ -66,7 +66,8 @@ export const actions: Actions = {
 
             if (!permissionCheck.allowed) {
                 return fail(403, {
-                    error: permissionCheck.reason || m.group_create_no_permission()
+                    error: permissionCheck.reason || m.group_create_no_permission(),
+                    values: {} as { displayName?: string }
                 });
             }
 
@@ -112,7 +113,8 @@ export const actions: Actions = {
 
             console.error('Error creating group:', error);
             return fail(500, {
-                error: m.group_create_error({ error: (error as Error).message })
+                error: m.group_create_error({ error: (error as Error).message }),
+                values: {} as { displayName?: string }
             });
         }
     }

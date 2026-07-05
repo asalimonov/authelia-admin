@@ -37,8 +37,8 @@ export interface BannedUser {
     id: number;
     time: string;
     expires: string | null;
-    expired: string | null;
-    revoked: string | null;
+    expired: boolean | null;
+    revoked: boolean | null;
     username: string;
     source: string;
     reason: string | null;
@@ -48,8 +48,8 @@ export interface BannedIP {
     id: number;
     time: string;
     expires: string | null;
-    expired: string | null;
-    revoked: string | null;
+    expired: boolean | null;
+    revoked: boolean | null;
     ip: string;
     source: string;
     reason: string | null;
@@ -86,7 +86,7 @@ export interface DatabaseAdapter {
 
 class SQLiteAdapter implements DatabaseAdapter {
     private db: sqlite3.Database;
-    private dbAll: (sql: string, params?: unknown[]) => Promise<unknown[]>;
+    private dbAll: (sql: string, params?: unknown[]) => Promise<Record<string, unknown>[]>;
     private dbClose: () => Promise<void>;
 
     private constructor(db: sqlite3.Database) {
@@ -180,7 +180,7 @@ class SQLiteAdapter implements DatabaseAdapter {
         
         try {
             const rows = await this.dbAll(query, [limit]);
-            return rows as TOTPHistory[];
+            return rows as unknown as TOTPHistory[];
         } catch (error) {
             log.error('Error reading TOTP history:', error);
             throw error;
@@ -204,7 +204,7 @@ class SQLiteAdapter implements DatabaseAdapter {
         
         try {
             const rows = await this.dbAll(query);
-            return rows as BannedUser[];
+            return rows as unknown as BannedUser[];
         } catch (error) {
             log.error('Error reading banned users:', error);
             throw error;
@@ -257,7 +257,7 @@ class SQLiteAdapter implements DatabaseAdapter {
         
         try {
             const rows = await this.dbAll(query);
-            return rows as BannedIP[];
+            return rows as unknown as BannedIP[];
         } catch (error) {
             log.error('Error reading banned IPs:', error);
             throw error;
@@ -521,8 +521,9 @@ class PostgreSQLAdapter implements DatabaseAdapter {
     }
 
     async healthCheck(): Promise<void> {
+        const query = 'SELECT 1';
         try {
-            await this.pool.query('SELECT 1');
+            await this.pool.query(query);
         } catch (error) {
             log.error('Database health check failed:', error);
             throw error;
