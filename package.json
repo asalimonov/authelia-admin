@@ -38,14 +38,14 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@apollo/client": "^4.1.6",
+    "@apollo/client": "^4.2.5",
     "@inlang/paraglide-js": "^2.20.2",
     "cross-fetch": "^4.1.0",
     "encoding": "^0.1.13",
-    "graphql": "^16.13.1",
-    "ldapts": "^8.1.7",
+    "graphql": "^17.0.2",
+    "ldapts": "^8.1.8",
     "pg": "^8.22.0",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^6.0.1",
     "yaml": "^2.9.0"
   }
 }
