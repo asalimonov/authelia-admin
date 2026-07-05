@@ -251,7 +251,7 @@
   "nav_users": "Пользователи",
   "nav_about": "О программе",
   "nav_about_version": "Версия {version}",
-  "nav_about_github": "GitHub",
+  "nav_about_github": "GitHub репозиторий",
   "nav_about_new_issue": "Сообщить о проблеме",
   "notifications_config_read_failed": "Не удалось прочитать конфигурацию: {error}",
   "notifications_empty": "Уведомления ещё не отправлялись.",

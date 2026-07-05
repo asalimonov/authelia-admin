@@ -6,7 +6,9 @@ import { execSync } from "node:child_process";
 
 function getAppVersion(): string {
 	try {
-		const tag = execSync("git describe --tags --abbrev=0", { encoding: "utf-8" }).trim();
+		const tag = execSync("git describe --tags --abbrev=0", {
+			encoding: "utf-8",
+		}).trim();
 		return tag || "dev";
 	} catch {
 		return "dev";
