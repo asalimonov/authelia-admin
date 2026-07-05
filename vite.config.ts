@@ -1,17 +1,17 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
-import { paraglideVitePlugin } from '@inlang/paraglide-js';
+import { sveltekit } from "@sveltejs/kit/vite";
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
 
 export default defineConfig({
 	plugins: [
 		paraglideVitePlugin({
-			project: './project.inlang',
-			outdir: './src/lib/paraglide',
-			strategy: ['cookie', 'baseLocale']
+			project: "./project.inlang",
+			outdir: "./src/lib/paraglide",
+			strategy: ["cookie", "baseLocale"],
 		}),
 		tailwindcss(),
-		sveltekit()
+		sveltekit(),
 	],
 	server: {
 		host: true,
@@ -27,24 +27,24 @@ export default defineConfig({
 	build: {
 		rollupOptions: {
 			// Keep native modules external but bundle the rest
-			external: ['sqlite3', 'ldapts']
+			external: ["sqlite3", "ldapts"],
 		},
 		// Increase chunk size limit to allow bundling
 		chunkSizeWarningLimit: 2000,
 		// Bundle all dependencies except native ones
 		commonjsOptions: {
 			include: [/node_modules/],
-			transformMixedEsModules: true
-		}
+			transformMixedEsModules: true,
+		},
 	},
 	ssr: {
 		// Bundle non-native dependencies
-		noExternal: ['yaml'],
+		noExternal: ["yaml"],
 		// Keep native modules external
-		external: ['sqlite3', 'ldapts'],
+		external: ["sqlite3", "ldapts"],
 		// Optimize deps for development
 		optimizeDeps: {
-			include: ['yaml']
-		}
-	}
+			include: ["yaml"],
+		},
+	},
 });
