@@ -27,13 +27,7 @@ export default defineConfig({
 	build: {
 		rollupOptions: {
 			// Keep native modules external but bundle the rest
-			external: ['sqlite3', 'ldapts'],
-			output: {
-				// Inline dynamic imports to reduce chunk count
-				inlineDynamicImports: true,
-				// Single bundle for server
-				manualChunks: undefined
-			}
+			external: ['sqlite3', 'ldapts']
 		},
 		// Increase chunk size limit to allow bundling
 		chunkSizeWarningLimit: 2000,
