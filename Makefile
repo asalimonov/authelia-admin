@@ -90,15 +90,15 @@ test-lint: ## Run ESLint on TypeScript code (requires pre-build)
 run-docker-compose: network ## Run docker compose with network dependencies within external network
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	(sleep 5 && docker compose exec -T lldap /bootstrap/bootstrap.sh) &
 	docker compose up
 
 .PHONY: test-e2e-up
 test-e2e-up: network ## Start E2E test stack (docker-compose.test.yml)
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	(sleep 5 && docker compose -f $(DOCKER_TEST_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh) &
 	docker compose -f $(DOCKER_TEST_COMPOSE_FILE) up -d
+	./scripts/wait-for-services.sh lldap
+	docker compose -f $(DOCKER_TEST_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh
 	./scripts/wait-for-services.sh
 
 .PHONY: test-e2e-down
@@ -109,8 +109,9 @@ test-e2e-down: ## Stop and remove E2E test stack
 test-e2e-pg-up: network ## Start PostgreSQL E2E test stack
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	(sleep 5 && docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh) &
 	docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) up -d
+	./scripts/wait-for-services.sh lldap
+	docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh
 	./scripts/wait-for-services.sh
 
 .PHONY: test-e2e-pg-down

@@ -32,9 +32,30 @@ wait_for() {
   echo "$name is ready (${elapsed}s)"
 }
 
-wait_for "LLDAP"           "http://localhost:17170"
-wait_for "Authelia"        "http://localhost:9091/api/health"
-wait_for "Authelia Admin"  "http://localhost:9093/auth-admin/health"
-wait_for "Traefik (TLS)"   "https://auth.localhost.test" --insecure
+# If no services specified, wait for all
+if [ "$#" -eq 0 ]; then
+  set -- lldap authelia authelia-admin traefik
+fi
 
-echo "All services are ready!"
+for service in "$@"; do
+  case "$service" in
+    lldap)
+      wait_for "LLDAP" "http://localhost:17170"
+      ;;
+    authelia)
+      wait_for "Authelia" "http://localhost:9091/api/health"
+      ;;
+    authelia-admin)
+      wait_for "Authelia Admin" "http://localhost:9093/auth-admin/health"
+      ;;
+    traefik)
+      wait_for "Traefik (TLS)" "https://auth.localhost.test" --insecure
+      ;;
+    *)
+      echo "ERROR: Unknown service '$service'"
+      exit 1
+      ;;
+  esac
+done
+
+echo "Requested services are ready!"

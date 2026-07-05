@@ -76,11 +76,7 @@ webauthn:
     discoverability: 'preferred'
     user_verification: 'preferred'
   metadata:
-    enabled: true
-    validate_trust_anchor: true
-    validate_entry: true
-    validate_status: true
-    validate_entry_permit_zero_aaguid: false
+    enabled: false
 
 password_policy:
   standard:
