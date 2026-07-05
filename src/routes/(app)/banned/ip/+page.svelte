@@ -23,8 +23,8 @@
 		expires: string | null;
 		source: string;
 		reason: string | null;
-		revoked: boolean;
-		expired: boolean;
+		revoked: boolean | null;
+		expired: boolean | null;
 	}
 
 	function getStatus(ban: BanRecord): { text: string; class: string } {
@@ -163,7 +163,7 @@
 										value="true"
 										class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-700 dark:border-gray-600"
 										on:change={(e) => {
-											const expiresInput = document.getElementById('expires');
+											const expiresInput = document.getElementById('expires') as HTMLInputElement | null;
 											if (expiresInput) {
 												expiresInput.disabled = e.currentTarget.checked;
 											}
@@ -264,9 +264,9 @@
 										<form
 											method="POST"
 											action="{base}/banned/ip?/delete"
-											use:enhance={() => {
+											use:enhance={({ cancel }) => {
 												if (!confirmDelete(ban.id, ban.ip)) {
-													return ({ cancel }) => cancel();
+													cancel();
 												}
 												deletingId = ban.id;
 												return async ({ update }) => {

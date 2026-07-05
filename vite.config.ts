@@ -1,17 +1,32 @@
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
-import { paraglideVitePlugin } from '@inlang/paraglide-js';
+import { sveltekit } from "@sveltejs/kit/vite";
+import { defineConfig } from "vite";
+import tailwindcss from "@tailwindcss/vite";
+import { paraglideVitePlugin } from "@inlang/paraglide-js";
+import { execSync } from "node:child_process";
+
+function getAppVersion(): string {
+	try {
+		const tag = execSync("git describe --tags --abbrev=0", {
+			encoding: "utf-8",
+		}).trim();
+		return tag || "dev";
+	} catch {
+		return "dev";
+	}
+}
 
 export default defineConfig({
+	define: {
+		__APP_VERSION__: JSON.stringify(getAppVersion()),
+	},
 	plugins: [
 		paraglideVitePlugin({
-			project: './project.inlang',
-			outdir: './src/lib/paraglide',
-			strategy: ['cookie', 'baseLocale']
+			project: "./project.inlang",
+			outdir: "./src/lib/paraglide",
+			strategy: ["cookie", "baseLocale"],
 		}),
 		tailwindcss(),
-		sveltekit()
+		sveltekit(),
 	],
 	server: {
 		host: true,
@@ -27,30 +42,24 @@ export default defineConfig({
 	build: {
 		rollupOptions: {
 			// Keep native modules external but bundle the rest
-			external: ['sqlite3', 'ldapts'],
-			output: {
-				// Inline dynamic imports to reduce chunk count
-				inlineDynamicImports: true,
-				// Single bundle for server
-				manualChunks: undefined
-			}
+			external: ["sqlite3", "ldapts"],
 		},
 		// Increase chunk size limit to allow bundling
 		chunkSizeWarningLimit: 2000,
 		// Bundle all dependencies except native ones
 		commonjsOptions: {
 			include: [/node_modules/],
-			transformMixedEsModules: true
-		}
+			transformMixedEsModules: true,
+		},
 	},
 	ssr: {
 		// Bundle non-native dependencies
-		noExternal: ['yaml'],
+		noExternal: ["yaml"],
 		// Keep native modules external
-		external: ['sqlite3', 'ldapts'],
+		external: ["sqlite3", "ldapts"],
 		// Optimize deps for development
 		optimizeDeps: {
-			include: ['yaml']
-		}
-	}
+			include: ["yaml"],
+		},
+	},
 });

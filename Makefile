@@ -21,18 +21,12 @@ network: ## Create Docker network if it doesn't exist
 
 .PHONY: pre-build
 pre-build: ## Build CI image with all dependencies for linting/testing (optional for build)
-	@if [ ! -f package-lock.json ]; then \
-		echo "package-lock.json not found, generating..."; \
-		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
-	fi
+	@if [ ! -f package-lock.json ]; then echo "package-lock.json not found, generating..."; docker run --rm --network=host -v "$(PWD)":/app -w /app node:26-alpine npm install --package-lock-only; fi
 	docker build --network=host -f ci.Dockerfile -t $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) .
 
 .PHONY: build
 build: ## Build production Docker image (self-contained, no pre-build required)
-	@if [ ! -f package-lock.json ]; then \
-		echo "package-lock.json not found, generating..."; \
-		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
-	fi
+	@if [ ! -f package-lock.json ]; then echo "package-lock.json not found, generating..."; docker run --rm --network=host -v "$(PWD)":/app -w /app node:26-alpine npm install --package-lock-only; fi
 	docker build --network=host -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
 	docker tag $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) ghcr.io/asalimonov/authelia-admin:latest
 
@@ -96,15 +90,15 @@ test-lint: ## Run ESLint on TypeScript code (requires pre-build)
 run-docker-compose: network ## Run docker compose with network dependencies within external network
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	(sleep 5 && docker compose exec -T lldap /bootstrap/bootstrap.sh) &
 	docker compose up
 
 .PHONY: test-e2e-up
 test-e2e-up: network ## Start E2E test stack (docker-compose.test.yml)
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	(sleep 5 && docker compose -f $(DOCKER_TEST_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh) &
 	docker compose -f $(DOCKER_TEST_COMPOSE_FILE) up -d
+	./scripts/wait-for-services.sh lldap
+	docker compose -f $(DOCKER_TEST_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh
 	./scripts/wait-for-services.sh
 
 .PHONY: test-e2e-down
@@ -115,8 +109,9 @@ test-e2e-down: ## Stop and remove E2E test stack
 test-e2e-pg-up: network ## Start PostgreSQL E2E test stack
 	mkdir -p ./.test-data/lldap
 	cp ./test-configs/lldap/lldap_config.toml ./.test-data/lldap
-	(sleep 5 && docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh) &
 	docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) up -d
+	./scripts/wait-for-services.sh lldap
+	docker compose -f $(DOCKER_TEST_PG_COMPOSE_FILE) exec -T lldap /bootstrap/bootstrap.sh
 	./scripts/wait-for-services.sh
 
 .PHONY: test-e2e-pg-down

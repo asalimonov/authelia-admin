@@ -1,6 +1,6 @@
-import type { IDirectoryService } from './types';
-import type { DirectoryServiceConfig } from './config';
-import { LLDAPGraphQLService } from './implementations/lldap-graphql';
+import type { IDirectoryService } from "./types";
+import type { ServiceConfig } from "./config";
+import { LLDAPGraphQLService } from "./implementations/lldap-graphql";
 
 /**
  * Factory for creating directory service instances.
@@ -14,9 +14,9 @@ export class DirectoryServiceFactory {
 	 * @returns An instance of IDirectoryService
 	 * @throws Error if the service type is not supported
 	 */
-	static create(config: DirectoryServiceConfig): IDirectoryService {
+	static create(config: ServiceConfig): IDirectoryService {
 		switch (config.type) {
-			case 'lldap-graphql':
+			case "lldap-graphql":
 				return new LLDAPGraphQLService(config);
 			default:
 				throw new Error(`Unsupported directory service type: ${config.type}`);

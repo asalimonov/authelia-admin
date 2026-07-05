@@ -138,9 +138,9 @@
 				<form
 					method="POST"
 					action="{base}/users/new?/create"
-					use:enhance={() => {
+					use:enhance={({ cancel }) => {
 						if (!validateForm()) {
-							return ({ cancel }) => cancel();
+							cancel();
 						}
 						isSubmitting = true;
 						return async ({ update }) => {
