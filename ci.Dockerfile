@@ -7,7 +7,8 @@ RUN apt-get update && \
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm config set allow-scripts true && \
+    npm ci
 
 # Copy source code
 COPY . .

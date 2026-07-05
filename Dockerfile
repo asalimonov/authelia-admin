@@ -9,7 +9,8 @@ WORKDIR /app
 
 # Install ALL dependencies (including devDependencies for build)
 COPY package*.json ./
-RUN npm ci
+RUN npm config set allow-scripts true && \
+    npm ci
 
 # Copy source and build
 COPY . .
@@ -25,21 +26,25 @@ RUN apt-get update && \
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev && \
+RUN npm config set allow-scripts true && \
+    npm ci --omit=dev && \
     npm cache clean --force && \
     rm -rf /root/.npm
 
-# Production stage - minimal Alpine with Node.js (no compilation needed here)
-FROM alpine:3.23
+# Production stage - use the same debian-slim base so native modules remain compatible
+FROM node:26-slim
 
-RUN apk add --no-cache nodejs curl
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=9093
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN groupadd -g 1001 nodejs && \
+    useradd -u 1001 -g nodejs -s /bin/false nodejs
 
 # Copy built app from builder, production deps from prod-deps stage
 COPY --chown=1001:1001 --from=builder /app/build ./build
