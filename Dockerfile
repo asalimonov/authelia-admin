@@ -1,4 +1,4 @@
-FROM node:25-slim AS builder
+FROM node:26-slim AS builder
 
 # Install build dependencies for native modules (sqlite3, ldapts)
 RUN apt-get update && \
@@ -16,7 +16,7 @@ COPY . .
 RUN npm run build
 
 # Production dependencies stage - use debian-slim for native module compilation
-FROM node:25-slim AS prod-deps
+FROM node:26-slim AS prod-deps
 
 # Install build dependencies for native modules (sqlite3, ldapts)
 RUN apt-get update && \

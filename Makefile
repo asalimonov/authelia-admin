@@ -21,18 +21,12 @@ network: ## Create Docker network if it doesn't exist
 
 .PHONY: pre-build
 pre-build: ## Build CI image with all dependencies for linting/testing (optional for build)
-	@if [ ! -f package-lock.json ]; then \
-		echo "package-lock.json not found, generating..."; \
-		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
-	fi
+	@if [ ! -f package-lock.json ]; then echo "package-lock.json not found, generating..."; docker run --rm --network=host -v "$(PWD)":/app -w /app node:26-alpine npm install --package-lock-only; fi
 	docker build --network=host -f ci.Dockerfile -t $(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) .
 
 .PHONY: build
 build: ## Build production Docker image (self-contained, no pre-build required)
-	@if [ ! -f package-lock.json ]; then \
-		echo "package-lock.json not found, generating..."; \
-		docker run --rm --network=host -v "$(PWD)":/app -w /app node:25-alpine npm install --package-lock-only; \
-	fi
+	@if [ ! -f package-lock.json ]; then echo "package-lock.json not found, generating..."; docker run --rm --network=host -v "$(PWD)":/app -w /app node:26-alpine npm install --package-lock-only; fi
 	docker build --network=host -t $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) .
 	docker tag $(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) ghcr.io/asalimonov/authelia-admin:latest
 

@@ -1,4 +1,4 @@
-FROM node:25-slim
+FROM node:26-slim
 
 # Install build dependencies for native modules (sqlite3, ldapts)
 RUN apt-get update && \
