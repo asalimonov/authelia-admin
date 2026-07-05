@@ -2,7 +2,7 @@ FROM node:26-slim
 
 # Install build dependencies for native modules (sqlite3, ldapts)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 make g++ && \
+    apt-get install -y --no-install-recommends python3 make g++ git && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -2,8 +2,21 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
+import { execSync } from "node:child_process";
+
+function getAppVersion(): string {
+	try {
+		const tag = execSync("git describe --tags --abbrev=0", { encoding: "utf-8" }).trim();
+		return tag || "dev";
+	} catch {
+		return "dev";
+	}
+}
 
 export default defineConfig({
+	define: {
+		__APP_VERSION__: JSON.stringify(getAppVersion()),
+	},
 	plugins: [
 		paraglideVitePlugin({
 			project: "./project.inlang",

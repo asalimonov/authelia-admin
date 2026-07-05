@@ -7,6 +7,8 @@
 
 	export let data: LayoutData;
 
+	$: appVersion = data.version ?? 'dev';
+
 	// Track which menu is open
 	let openMenu: string | null = null;
 
@@ -18,6 +20,18 @@
 	// Close menu when clicking outside
 	function closeMenus() {
 		openMenu = null;
+	}
+
+	interface MenuChild {
+		name: string;
+		href: string | null;
+		external?: boolean;
+	}
+
+	interface MenuItem {
+		name: string;
+		href: string;
+		children: MenuChild[];
 	}
 
 	// Menu items with sub-items - using reactive statement for translations
@@ -54,8 +68,17 @@
 			children: [
 				{ name: m.nav_notifications_file(), href: `${base}/notifications/file` }
 			]
+		},
+		{
+			name: m.nav_about(),
+			href: '#',
+			children: [
+				{ name: m.nav_about_version({ version: appVersion }), href: null },
+				{ name: m.nav_about_github(), href: 'https://github.com/asalimonov/authelia-admin', external: true },
+				{ name: m.nav_about_new_issue(), href: 'https://github.com/asalimonov/authelia-admin/issues/new', external: true }
+			]
 		}
-	];
+	] as MenuItem[];
 </script>
 
 <svelte:window on:click={closeMenus} />
@@ -117,13 +140,22 @@
 									<ul>
 										{#each item.children as child}
 											<li>
-												<a
-													href={child.href}
-													class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors {$page.url.pathname === child.href ? 'bg-gray-100 dark:bg-gray-700' : ''}"
-													on:click={() => openMenu = null}
-												>
-													{child.name}
-												</a>
+												{#if child.href === null}
+													<span
+														class="block px-4 py-2 text-gray-500 dark:text-gray-400 cursor-default"
+													>
+														{child.name}
+													</span>
+												{:else}
+													<a
+														href={child.href}
+														class="block px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors {$page.url.pathname === child.href ? 'bg-gray-100 dark:bg-gray-700' : ''}"
+														on:click={() => openMenu = null}
+														{...child.external ? { target: '_blank', rel: 'noopener noreferrer' } : {}}
+													>
+														{child.name}
+													</a>
+												{/if}
 											</li>
 										{/each}
 									</ul>

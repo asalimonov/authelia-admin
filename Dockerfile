@@ -1,8 +1,8 @@
 FROM node:26-slim AS builder
 
-# Install build dependencies for native modules (sqlite3, ldapts)
+# Install build dependencies for native modules (sqlite3, ldapts) and git for version tagging
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends python3 make g++ && \
+    apt-get install -y --no-install-recommends python3 make g++ git && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
