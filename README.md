@@ -10,6 +10,7 @@ A web-based administration interface for managing Authelia authentication server
 - View and manage TOTP configurations
 - View TOTP history
 - Management of banned users and IPs
+- View and revoke active sessions (immediate logout, requires the Redis session provider)
 - Dedicated role for management of regular users (user_manager)
 - Dedicated role for management of passwords of regular users (password_manager)
 - Internationalization
@@ -69,6 +70,17 @@ You need to specify only the following environment variables for a minimal insta
 | `AAD_AUTHELIA_COOKIE_NAME` | Session cookie name | `authelia_session` |
 | `AAD_AUTHELIA_MIN_AUTH_LEVEL` | Minimum auth level (1=password, 2=2FA) | `2` |
 | `AAD_AUTHELIA_ALLOWED_USERS` | Comma-separated list of allowed users | (empty = all users) |
+
+#### Session Management (optional)
+
+Lists Authelia's active sessions and revokes them (immediate logout). Only available when Authelia uses the [Redis session provider](https://www.authelia.com/configuration/session/redis/); the Redis connection details are read from Authelia's `configuration.yml`. Sessions are encrypted by Authelia, so the panel additionally needs Authelia's session secret to display them. Revoking sessions is restricted to users with the admin role (`lldap_admin` group).
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AAD_AUTHELIA_SESSION_SECRET` | Authelia's session secret (same value as Authelia's `AUTHELIA_SESSION_SECRET`) | (unset = feature disabled) |
+| `AAD_AUTHELIA_SESSION_SECRET_FILE` | Path to a file containing the session secret | (unset) |
+| `AAD_SESSION_REDIS_PASSWORD` | Redis password, if not present in Authelia's `configuration.yml` | (from Authelia config) |
+| `AAD_SESSION_REDIS_PASSWORD_FILE` | Path to a file containing the Redis password | (unset) |
 
 #### Directory Service (LLDAP GraphQL)
 

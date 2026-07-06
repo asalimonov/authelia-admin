@@ -63,6 +63,11 @@
 			]
 		},
 		{
+			name: m.nav_sessions(),
+			href: `${base}/sessions`,
+			children: []
+		},
+		{
 			name: m.nav_notifications(),
 			href: `${base}/notifications`,
 			children: [
