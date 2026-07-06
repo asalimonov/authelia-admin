@@ -293,6 +293,8 @@
   "sessions_revoke_user_button": "Log out {username}",
   "sessions_revoke_user_confirm": "Are you sure you want to revoke ALL sessions of \"{username}\"? The user will be logged out immediately.",
   "sessions_revoking": "Revoking...",
+  "sessions_hide_anonymous": "Hide anonymous sessions ({count})",
+  "sessions_only_anonymous": "Only anonymous sessions — unhide to show them.",
   "sessions_subtitle": "Active Authelia sessions — revoke a session to log the user out immediately",
   "sessions_table_actions": "Actions",
   "sessions_table_expires": "Expires",

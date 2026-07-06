@@ -293,6 +293,8 @@
   "sessions_revoke_user_button": "Разлогинить {username}",
   "sessions_revoke_user_confirm": "Отозвать ВСЕ сессии пользователя \"{username}\"? Пользователь будет немедленно разлогинен.",
   "sessions_revoking": "Отзыв...",
+  "sessions_hide_anonymous": "Скрыть анонимные сессии ({count})",
+  "sessions_only_anonymous": "Только анонимные сессии — снимите галочку, чтобы показать.",
   "sessions_subtitle": "Активные сессии Authelia — отзыв сессии немедленно разлогинивает пользователя",
   "sessions_table_actions": "Действия",
   "sessions_table_expires": "Истекает",

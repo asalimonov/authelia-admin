@@ -9,6 +9,10 @@
 	let revokingId: string | null = null;
 	let revokingUser: string | null = null;
 
+	// Anonymous sessions (no logged-in user) are just browser/scanner noise;
+	// hide them by default so the list shows real users.
+	let hideAnonymous = true;
+
 	function formatUnix(seconds: number): string {
 		if (!seconds) return m.common_never();
 		const date = new Date(seconds * 1000);
@@ -32,6 +36,11 @@
 
 	// Distinct authenticated usernames for the "revoke all" actions
 	$: usernames = [...new Set(data.sessions.filter((s) => s.username).map((s) => s.username))];
+
+	$: anonymousCount = data.sessions.filter((s) => !s.username).length;
+	$: visibleSessions = hideAnonymous
+		? data.sessions.filter((s) => s.username)
+		: data.sessions;
 </script>
 
 <div class="space-y-6">
@@ -60,6 +69,20 @@
 			{:else if data.sessions.length === 0}
 				<p class="text-gray-600 dark:text-gray-400">{m.sessions_empty()}</p>
 			{:else}
+				{#if anonymousCount > 0}
+					<label class="mb-4 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+						<input
+							type="checkbox"
+							bind:checked={hideAnonymous}
+							class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+						/>
+						{m.sessions_hide_anonymous({ count: anonymousCount })}
+					</label>
+				{/if}
+
+				{#if visibleSessions.length === 0}
+					<p class="text-gray-600 dark:text-gray-400">{m.sessions_only_anonymous()}</p>
+				{:else}
 				{#if usernames.length > 0}
 					<div class="mb-6 flex flex-wrap gap-2">
 						{#each usernames as username}
@@ -117,7 +140,7 @@
 							</tr>
 						</thead>
 						<tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-							{#each data.sessions as session (session.id)}
+							{#each visibleSessions as session (session.id)}
 								<tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
 									<td class="px-6 py-4 whitespace-nowrap">
 										{#if session.username}
@@ -172,6 +195,7 @@
 						</tbody>
 					</table>
 				</div>
+				{/if}
 			{/if}
 		</div>
 	</div>
