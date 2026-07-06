@@ -25,6 +25,7 @@ Authelia Admin Control Panel - A web-based administration interface for managing
 - View TOTP history
 - Management of users and groups in LLDAP
 - Managemenent of banned users and IPs
+- View and revoke active sessions via Authelia's Redis session storage (admin role only)
 - Dedicated role for management of regular users (user_manager)
 - Dedicated role for  (user_manager)
 - Roles: admin, user_manager (management of users), passowrd_manager (can change passwords). No access for regular users.

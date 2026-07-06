@@ -40,9 +40,11 @@
   "dependencies": {
     "@apollo/client": "^4.2.5",
     "@inlang/paraglide-js": "^2.20.2",
+    "@msgpack/msgpack": "^3.1.3",
     "cross-fetch": "^4.1.0",
     "encoding": "^0.1.13",
     "graphql": "^17.0.2",
+    "ioredis": "^5.11.1",
     "ldapts": "^8.1.8",
     "pg": "^8.22.0",
     "sqlite3": "^6.0.1",
