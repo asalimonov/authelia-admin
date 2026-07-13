@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@apollo/client": "^4.2.5",
-    "@inlang/paraglide-js": "^2.20.2",
+    "@inlang/paraglide-js": "^2.21.0",
     "cross-fetch": "^4.1.0",
     "encoding": "^0.1.13",
     "graphql": "^17.0.2",
