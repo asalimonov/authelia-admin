@@ -38,7 +38,7 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "@apollo/client": "^4.2.5",
+    "@apollo/client": "^4.2.7",
     "@inlang/paraglide-js": "^2.20.2",
     "cross-fetch": "^4.1.0",
     "encoding": "^0.1.13",
