@@ -1,6 +1,7 @@
 import { sequence } from '@sveltejs/kit/hooks';
-import { error, type Handle } from '@sveltejs/kit';
+import { error, type Handle, type ServerInit } from '@sveltejs/kit';
 import { loadConfig, type AppConfig } from '$lib/server/config';
+import { initDatabaseConfig } from '$lib/server/database-config';
 import { getDirectoryServiceAsync } from '$lib/server/directory-service';
 import { getAccessService, type DirectoryServiceType } from '$lib/server/access-service';
 import { paraglideMiddleware } from '$lib/paraglide/server';
@@ -8,6 +9,10 @@ import { createLogger } from '$lib/server/logger';
 import * as m from '$lib/paraglide/messages';
 
 const log = createLogger('auth');
+
+export const init: ServerInit = async () => {
+	await initDatabaseConfig();
+};
 
 // Config will be loaded on first request
 let configLoaded = false;

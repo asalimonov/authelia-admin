@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:functional": "vitest run --config vitest.functional.config.ts",
-    "lint": "eslint 'src/**/*.{ts,svelte}'",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "lint": "eslint 'src/**/*.{ts,svelte}' 'tests/**/*.ts'",
     "test:e2e": "playwright test --config=e2e/playwright.config.ts"
   },
   "devDependencies": {
@@ -32,6 +33,7 @@
     "svelte": "^5.56.4",
     "svelte-check": "^4.7.1",
     "tailwindcss": "^4.3.2",
+    "testcontainers": "^12.1.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.1",
     "vite": "^8.1.3",

@@ -81,6 +81,10 @@ test-medium: ## Run functional tests (requires pre-build and run-docker-compose)
 		-e NODE_TLS_REJECT_UNAUTHORIZED=0 \
 		$(DOCKER_CI_IMAGE_NAME):$(DOCKER_CI_IMAGE_TAG) npm run test:functional
 
+.PHONY: test-large
+test-large: build ## Run integration tests with testcontainers on the host (requires Docker, Node >= 22.22)
+	AAD_TEST_IMAGE=$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG) npx vitest run --config vitest.integration.config.ts
+
 .PHONY: test-lint
 test-lint: ## Run ESLint on TypeScript code (requires pre-build)
 	docker run --rm --network $(DOCKER_NETWORK_NAME) \
