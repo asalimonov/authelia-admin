@@ -38,7 +38,7 @@ Authelia Admin Control Panel - A web-based administration interface for managing
 
 ## Development Commands
 
-All commands should be run inside docker environment
+All commands should be run inside docker environment. Exceptions: `make test-e2e` and `make test-large` run their test runners on the host (Docker, Node.js >= 22.22 and `npm install` on the host are required).
 
 ```bash
 # Install dependencies
@@ -83,7 +83,8 @@ make docker-compose-run  # Run full test stack (Authelia, LLDAP, Traefik)
 make test          # Run all tests (unit + functional)
 make test-small    # Run unit tests only
 make test-medium   # Run functional tests only
-make test-lint     # Run ESLint on TypeScript code
+make test-large    # Build image, run testcontainers integration tests (tests/integration) on the host
+make test-lint     # Run ESLint on TypeScript code (src/ and tests/)
 
 # E2E Testing (Playwright)
 make test-e2e         # Full cycle: build, run SQLite + PostgreSQL tests, tear down
@@ -114,6 +115,7 @@ src/
 ├── lib/
 │   └── server/
 │       ├── database.ts          # Database adapters (SQLite, PostgreSQL)
+│       ├── database-config.ts   # Effective DB config: defaults < Authelia storage < AAD_DB_* env
 │       ├── ldap.ts              # LDAP client singleton class
 │       └── directory-service/   # Directory service abstraction
 ├── routes/
@@ -145,6 +147,12 @@ test-configs/
 │   └── bootstrap/      # User/group initialization
 └── traefik/            # Traefik reverse proxy
     └── traefik.yml
+
+tests/integration/       # Testcontainers suites (make test-large)
+├── fixtures/            # gen-certs.sh, PostgreSQL pg_hba.conf and init.sql
+├── support/             # Stack, admin container, certificate and HTTP helpers
+├── db-sqlite.env.test.ts
+└── db-postgres.env.test.ts
 ```
 
 ## Key Configuration
@@ -174,6 +182,27 @@ AAD_DIRECTORY_LLDAP_GRAPHQL_USER=admin           # LLDAP admin username
 AAD_DIRECTORY_LLDAP_GRAPHQL_PASSWORD=secret      # LLDAP admin password
 AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_HOST=lldap      # LDAP host for password changes
 AAD_DIRECTORY_LLDAP_GRAPHQL_LDAP_PORT=3890       # LDAP port for password changes
+
+# Database (override Authelia configuration.yml storage section per key; see README)
+AAD_AUTHELIA_CONFIG_PATH=/config/configuration.yml
+AAD_DB_TYPE=PG                                   # PG | SQLITE
+AAD_DB_SQLITE_PATH=/data/db.sqlite3
+AAD_DB_SQLITE_BUSY_TIMEOUT_MS=5000
+AAD_DB_PG_HOST=postgres
+AAD_DB_PG_PORT=5432
+AAD_DB_PG_DATABASE=authelia
+AAD_DB_PG_USERNAME=authelia
+AAD_DB_PG_PASSWORD=secret                        # or AAD_DB_PG_PASSWORD_FILE
+AAD_DB_PG_SCHEMA=public
+AAD_DB_PG_TIMEOUT_MS=5000
+AAD_DB_PG_POOL_MAX=10
+AAD_DB_PG_TLS_MODE=verify-full                   # disable | require | verify-ca | verify-full
+AAD_DB_PG_TLS_CA_FILE=/run/secrets/ca.pem
+AAD_DB_PG_TLS_CERT_FILE=/run/secrets/client.pem
+AAD_DB_PG_TLS_KEY_FILE=/run/secrets/client.key
+AAD_DB_PG_TLS_SERVER_NAME=postgres
+AAD_DB_PG_TLS_MIN_VERSION=TLS1.2
+AAD_DB_PG_TLS_MAX_VERSION=TLS1.3
 
 # Security
 TRUSTED_ORIGINS=https://auth.localhost.test      # CSRF trusted origins

@@ -1,9 +1,16 @@
-import { promises as fs } from "node:fs";
-import { parse } from "yaml";
 import sqlite3 from "sqlite3";
 import pg from "pg";
 import { promisify } from "node:util";
 import { createLogger } from "./logger";
+import {
+	initDatabaseConfig,
+	toPgSslOptions,
+	type DatabaseConfig,
+	type PostgresConfig,
+	type SqliteConfig,
+} from "./database-config";
+
+export type { DatabaseConfig, PostgresConfig, SqliteConfig } from "./database-config";
 
 // Override pg type parsers to return ISO strings for timestamps (matching SQLite behavior)
 // OID 1114 = TIMESTAMP, OID 1184 = TIMESTAMPTZ
@@ -55,21 +62,6 @@ export interface BannedIP {
 	reason: string | null;
 }
 
-export interface PostgresConfig {
-	host: string;
-	port: number;
-	database: string;
-	username: string;
-	password: string;
-	schema?: string;
-}
-
-export interface DatabaseConfig {
-	type: "sqlite" | "postgres";
-	path?: string;
-	postgres?: PostgresConfig;
-}
-
 export interface DatabaseAdapter {
 	getTOTPConfigurations(): Promise<TOTPConfiguration[]>;
 	deleteTOTPConfiguration(id: number): Promise<boolean>;
@@ -102,24 +94,24 @@ class SQLiteAdapter implements DatabaseAdapter {
 	) => Promise<Record<string, unknown>[]>;
 	private dbClose: () => Promise<void>;
 
-	private constructor(db: sqlite3.Database) {
+	private constructor(db: sqlite3.Database, busyTimeoutMs: number) {
 		this.db = db;
-		// Configure SQLite for better concurrency with Authelia
-		this.db.configure("busyTimeout", 5000); // Wait up to 5 seconds if database is locked
+		// Wait for Authelia's write locks instead of failing with SQLITE_BUSY
+		this.db.configure("busyTimeout", busyTimeoutMs);
 
 		this.dbAll = promisify(this.db.all.bind(this.db));
 		this.dbClose = promisify(this.db.close.bind(this.db));
 	}
 
-	static async create(dbPath: string): Promise<SQLiteAdapter> {
+	static async create(config: SqliteConfig): Promise<SQLiteAdapter> {
 		return new Promise((resolve, reject) => {
-			const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE, (err) => {
+			const db = new sqlite3.Database(config.path, sqlite3.OPEN_READWRITE, (err) => {
 				if (err) {
 					log.error("Error opening database:", err);
 					reject(err);
 				} else {
-					log.debug(`Database opened: ${dbPath}`);
-					resolve(new SQLiteAdapter(db));
+					log.debug(`Database opened: ${config.path}`);
+					resolve(new SQLiteAdapter(db, config.busyTimeoutMs));
 				}
 			});
 		});
@@ -358,12 +350,12 @@ class PostgreSQLAdapter implements DatabaseAdapter {
 			database: config.database,
 			user: config.username,
 			password: config.password,
+			ssl: toPgSslOptions(config.tls),
+			connectionTimeoutMillis: config.timeoutMs,
+			max: config.poolMax,
 		};
 
-		if (config.schema && config.schema !== "public") {
-			if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(config.schema)) {
-				throw new Error(`Invalid PostgreSQL schema name: ${config.schema}`);
-			}
+		if (config.schema !== "public") {
 			poolConfig.options = `-c search_path=${config.schema}`;
 		}
 
@@ -582,73 +574,8 @@ class PostgreSQLAdapter implements DatabaseAdapter {
 	}
 }
 
-// Cached config — Authelia config file doesn't change at runtime
-let cachedConfigPromise: Promise<DatabaseConfig | null> | null = null;
-
-export async function getDatabaseConfig(): Promise<DatabaseConfig | null> {
-	if (!cachedConfigPromise) {
-		cachedConfigPromise = readDatabaseConfig().catch((err) => {
-			cachedConfigPromise = null;
-			throw err;
-		});
-	}
-	return cachedConfigPromise;
-}
-
-async function readDatabaseConfig(): Promise<DatabaseConfig | null> {
-	try {
-		const configPath =
-			process.env.AAD_AUTHELIA_CONFIG_PATH ||
-			process.env.AUTHELIA_CONFIG_PATH ||
-			"/config/configuration.yml";
-		const configContent = await fs.readFile(configPath, "utf-8");
-		const config = parse(configContent);
-
-		if (!config?.storage) {
-			return null;
-		}
-
-		if (config.storage.local?.path) {
-			log.debug(`Using SQLite database: ${config.storage.local.path}`);
-			return {
-				type: "sqlite",
-				path: config.storage.local.path,
-			};
-		}
-
-		if (config.storage.postgres) {
-			const pgStorage = config.storage.postgres;
-			let host = "localhost";
-			let port = 5432;
-
-			if (pgStorage.address) {
-				// Authelia uses 'tcp://host:port' format - replace tcp:// with http:// for URL parsing
-				const url = new URL(pgStorage.address.replace(/^tcp:\/\//, "http://"));
-				host = url.hostname;
-				port = url.port ? parseInt(url.port, 10) : 5432;
-			} else if (pgStorage.host) {
-				// Legacy Authelia config with plain host field
-				host = pgStorage.host;
-				port = pgStorage.port ? parseInt(String(pgStorage.port), 10) : 5432;
-			}
-
-			const database = pgStorage.database || "authelia";
-			const username = pgStorage.username || "authelia";
-			const password = pgStorage.password || "";
-			const schema = pgStorage.schema || "public";
-
-			log.debug(`Using PostgreSQL database: ${host}:${port}/${database}`);
-			return {
-				type: "postgres",
-				postgres: { host, port, database, username, password, schema },
-			};
-		}
-
-		return null;
-	} catch (error) {
-		log.error("Error reading database configuration:", error);
-		return null;
-	}
+export function getDatabaseConfig(): Promise<DatabaseConfig | null> {
+	return initDatabaseConfig();
 }
 
 // Singleton adapters — connections are long-lived and shared across requests
@@ -660,12 +587,8 @@ export async function createDatabaseAdapter(
 ): Promise<DatabaseAdapter> {
 	switch (config.type) {
 		case "sqlite":
-			if (!config.path) {
-				log.error("SQLite database path is required");
-				throw new Error("SQLite database path is required");
-			}
 			if (!sqliteAdapterPromise) {
-				sqliteAdapterPromise = SQLiteAdapter.create(config.path).catch(
+				sqliteAdapterPromise = SQLiteAdapter.create(config.sqlite).catch(
 					(err) => {
 						sqliteAdapterPromise = null;
 						throw err;
@@ -674,10 +597,6 @@ export async function createDatabaseAdapter(
 			}
 			return await sqliteAdapterPromise;
 		case "postgres":
-			if (!config.postgres) {
-				log.error("PostgreSQL configuration is required");
-				throw new Error("PostgreSQL configuration is required");
-			}
 			if (!pgAdapterPromise) {
 				pgAdapterPromise = PostgreSQLAdapter.create(config.postgres).catch(
 					(err) => {
@@ -687,9 +606,6 @@ export async function createDatabaseAdapter(
 				);
 			}
 			return await pgAdapterPromise;
-		default:
-			log.error("Unsupported database type:", config.type);
-			throw new Error(`Unsupported database type: ${config.type}`);
 	}
 }
 
