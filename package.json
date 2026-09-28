@@ -36,8 +36,8 @@
     "testcontainers": "^12.1.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.64.0",
-    "vite": "^8.1.4",
-    "vitest": "^4.1.10"
+    "vite": "^8.3.1",
+    "vitest": "^5.0.1"
   },
   "dependencies": {
     "@apollo/client": "^4.2.7",
