@@ -66,6 +66,10 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
+        # Prebuilt sqlite3 binaries target a newer glibc than bookworm's 2.36,
+        # so compile native modules against this container instead
+        env:
+          npm_config_build_from_source: 'true'
         run: |
           npm config set allow-scripts true
           npm ci
