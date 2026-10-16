@@ -35,12 +35,20 @@ jobs:
             runner: ubuntu-24.04-arm
     env:
       TRUSTED_ORIGINS: ${{ vars.TRUSTED_ORIGINS || 'https://auth.localhost.test' }}
+    defaults:
+      run:
+        # The Debian image defaults to dash, which lacks bash syntax used below
+        shell: bash
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Trust workspace for git
+        # Checkout owner differs from the container user, so git refuses the repo otherwise
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Install native build tools and dpkg
         run: |
