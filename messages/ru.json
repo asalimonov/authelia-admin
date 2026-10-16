@@ -120,6 +120,7 @@
   "common_validation_error": "Ошибка валидации",
   "config_id_required": "Требуется идентификатор конфигурации",
   "config_read_failed": "Не удалось прочитать конфигурацию: {error}",
+  "csrf_forbidden": "Межсайтовая отправка формы методом {method} запрещена",
   "dashboard_banned_text": "Просмотр и управление заблокированными IP и пользователями",
   "dashboard_banned_title": "Заблокированные",
   "dashboard_notifications_text": "Настройка параметров уведомлений",

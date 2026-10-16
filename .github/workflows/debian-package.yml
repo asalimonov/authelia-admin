@@ -1,0 +1,159 @@
+name: Build Debian package
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-deb:
+    name: Build .deb (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    # Ubuntu 22.04 has glibc 2.35. Official Node.js 26 linux binaries need glibc >= 2.28
+    # and libatomic1, so they run here and on newer Ubuntu. sqlite3 is compiled in this
+    # container, which is why the package depends on libc6 >= 2.35.
+    container: ubuntu:22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    defaults:
+      run:
+        # The Debian image defaults to dash, which lacks bash syntax used below
+        shell: bash
+
+    steps:
+      - name: Install build tools
+        # git is required by actions/checkout, which runs inside this container.
+        # libatomic1 is required to execute the official Node.js 26 binary.
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3 make g++ dpkg-dev curl ca-certificates xz-utils git libatomic1
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Trust workspace for git
+        # Checkout owner differs from the container user, so git refuses the repo otherwise
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Install Node.js 26
+        run: |
+          set -euo pipefail
+          case "$(dpkg --print-architecture)" in
+            amd64) node_arch=x64 ;;
+            arm64) node_arch=arm64 ;;
+            *) echo "unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;;
+          esac
+          version="$(python3 -c 'import json,re,urllib.request; releases=json.load(urllib.request.urlopen("https://nodejs.org/dist/index.json")); print(next(i["version"] for i in releases if re.fullmatch(r"v26\.\d+\.\d+", i["version"])))')"
+          tarball="node-${version}-linux-${node_arch}.tar.xz"
+          curl -fsSLO "https://nodejs.org/dist/${version}/${tarball}"
+          curl -fsSLO "https://nodejs.org/dist/${version}/SHASUMS256.txt"
+          line="$(awk -v name="$tarball" '$2 == name { print; exit }' SHASUMS256.txt)"
+          if [[ -z "$line" ]]; then
+            echo "checksum entry for ${tarball} not found" >&2
+            exit 1
+          fi
+          printf '%s\n' "$line" | sha256sum -c -
+          tar -xJf "$tarball" -C /usr/local --strip-components=1
+          hash -r
+          node --version
+          npm --version
+
+      - name: Compute package version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="0.0.0~git$(date -u +%Y%m%d).$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        # Prebuilt sqlite3 binaries may require a newer glibc than Ubuntu 22.04,
+        # so compile native modules against this container instead
+        env:
+          npm_config_build_from_source: 'true'
+        run: |
+          npm config set allow-scripts true
+          npm ci
+
+      - name: Build application
+        # TRUSTED_ORIGINS and ORIGIN are read when the service starts, not during this build.
+        run: npm run build
+
+      - name: Keep production dependencies only
+        run: npm prune --omit=dev
+
+      - name: Assemble Debian package
+        run: |
+          bash scripts/build-deb.sh \
+            "${{ steps.version.outputs.version }}" \
+            "${{ matrix.arch }}" \
+            "$(command -v node)" \
+            dist-deb
+
+      - name: Inspect package
+        run: |
+          dpkg-deb --info dist-deb/*.deb
+          dpkg-deb --contents dist-deb/*.deb
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: authelia-admin-deb-${{ matrix.arch }}
+          path: dist-deb/*.deb
+          if-no-files-found: error
+
+  release:
+    name: Attach packages to GitHub release
+    needs: build-deb
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        # Needed by gh release create --generate-notes to read the git history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: authelia-admin-deb-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create release if missing and upload packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
+          fi
+          gh release upload "$GITHUB_REF_NAME" dist/*.deb --clobber

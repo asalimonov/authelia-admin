@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+PKG=authelia-admin
+
+case "$1" in
+	remove)
+		if [ -d /run/systemd/system ]; then
+			systemctl daemon-reload >/dev/null 2>&1 || true
+		fi
+		;;
+	purge)
+		rm -rf /var/lib/$PKG
+		if getent passwd "$PKG" >/dev/null; then
+			deluser --system "$PKG" >/dev/null 2>&1 || true
+		fi
+		if getent group "$PKG" >/dev/null; then
+			delgroup --system "$PKG" >/dev/null 2>&1 || true
+		fi
+		if [ -d /run/systemd/system ]; then
+			systemctl daemon-reload >/dev/null 2>&1 || true
+		fi
+		;;
+esac
+
+exit 0

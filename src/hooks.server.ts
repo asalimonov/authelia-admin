@@ -4,6 +4,8 @@ import { loadConfig, type AppConfig } from '$lib/server/config';
 import { initDatabaseConfig } from '$lib/server/database-config';
 import { getDirectoryServiceAsync } from '$lib/server/directory-service';
 import { getAccessService, type DirectoryServiceType } from '$lib/server/access-service';
+import { env } from '$env/dynamic/private';
+import { isCrossSiteFormForbidden, trustedOriginsFromEnv } from '$lib/server/csrf';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { createLogger } from '$lib/server/logger';
 import * as m from '$lib/paraglide/messages';
@@ -25,6 +27,29 @@ async function ensureConfigLoaded(): Promise<AppConfig> {
 	}
 	return config!;
 }
+
+// Form CSRF. Kit's own list is disabled because it is frozen at build time.
+const csrfHandle: Handle = ({ event, resolve }) => {
+	const forbidden = isCrossSiteFormForbidden(
+		event.request.method,
+		event.request.headers.get('content-type'),
+		event.request.headers.get('origin'),
+		event.url.origin,
+		trustedOriginsFromEnv(env.TRUSTED_ORIGINS)
+	);
+	if (!forbidden) {
+		return resolve(event);
+	}
+
+	const message = m.csrf_forbidden({ method: event.request.method });
+	if (event.request.headers.get('accept') === 'application/json') {
+		return new Response(JSON.stringify({ message }), {
+			status: 403,
+			headers: { 'content-type': 'application/json' }
+		});
+	}
+	return new Response(message, { status: 403, headers: { 'content-type': 'text/plain' } });
+};
 
 // i18n middleware using Paraglide
 const i18nHandle: Handle = ({ event, resolve }) =>
@@ -140,5 +165,5 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-// Export the combined handle with i18n first, then authentication
-export const handle = sequence(i18nHandle, authHandle);
+// i18n first so the CSRF response uses the request locale. CSRF still runs before authentication.
+export const handle = sequence(i18nHandle, csrfHandle, authHandle);
