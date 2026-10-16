@@ -5,7 +5,7 @@ Priority: optional
 Architecture: @ARCH@
 Installed-Size: @INSTALLED_SIZE@
 Maintainer: @MAINTAINER@
-Depends: adduser, libc6 (>= 2.36), libstdc++6
+Depends: adduser, libc6 (>= 2.35), libstdc++6, libatomic1
 Homepage: https://github.com/digennarot/authelia-admin
 Description: Web administration interface for Authelia
  Authelia Admin is a web control panel for managing an Authelia
@@ -13,5 +13,6 @@ Description: Web administration interface for Authelia
  groups in LLDAP.
  .
  The package ships its own Node.js runtime, so it does not depend on
- the system nodejs package. The native sqlite3 module is built together
- with that runtime.
+ the system nodejs package. That runtime needs libatomic1 and glibc 2.28
+ or newer. The native sqlite3 module is built on Ubuntu 22.04, so the
+ package loads on Ubuntu 22.04 and newer.

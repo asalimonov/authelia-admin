@@ -22,9 +22,10 @@ jobs:
   build-deb:
     name: Build .deb (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
-    # Build inside Debian bookworm so native modules link against its glibc
-    # (the .deb requires libc6 >= 2.36)
-    container: node:26-bookworm
+    # Ubuntu 22.04 has glibc 2.35. Official Node.js 26 linux binaries need glibc >= 2.28
+    # and libatomic1, so they run here and on newer Ubuntu. sqlite3 is compiled in this
+    # container, which is why the package depends on libc6 >= 2.35.
+    container: ubuntu:22.04
     strategy:
       fail-fast: false
       matrix:
@@ -33,14 +34,22 @@ jobs:
             runner: ubuntu-24.04
           - arch: arm64
             runner: ubuntu-24.04-arm
-    env:
-      TRUSTED_ORIGINS: ${{ vars.TRUSTED_ORIGINS || 'https://auth.localhost.test' }}
     defaults:
       run:
         # The Debian image defaults to dash, which lacks bash syntax used below
         shell: bash
 
     steps:
+      - name: Install build tools
+        # git is required by actions/checkout, which runs inside this container.
+        # libatomic1 is required to execute the official Node.js 26 binary.
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3 make g++ dpkg-dev curl ca-certificates xz-utils git libatomic1
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -50,10 +59,28 @@ jobs:
         # Checkout owner differs from the container user, so git refuses the repo otherwise
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Install native build tools and dpkg
+      - name: Install Node.js 26
         run: |
-          apt-get update
-          apt-get install -y --no-install-recommends python3 make g++ dpkg-dev
+          set -euo pipefail
+          case "$(dpkg --print-architecture)" in
+            amd64) node_arch=x64 ;;
+            arm64) node_arch=arm64 ;;
+            *) echo "unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;;
+          esac
+          version="$(python3 -c 'import json,re,urllib.request; releases=json.load(urllib.request.urlopen("https://nodejs.org/dist/index.json")); print(next(i["version"] for i in releases if re.fullmatch(r"v26\.\d+\.\d+", i["version"])))')"
+          tarball="node-${version}-linux-${node_arch}.tar.xz"
+          curl -fsSLO "https://nodejs.org/dist/${version}/${tarball}"
+          curl -fsSLO "https://nodejs.org/dist/${version}/SHASUMS256.txt"
+          line="$(awk -v name="$tarball" '$2 == name { print; exit }' SHASUMS256.txt)"
+          if [[ -z "$line" ]]; then
+            echo "checksum entry for ${tarball} not found" >&2
+            exit 1
+          fi
+          printf '%s\n' "$line" | sha256sum -c -
+          tar -xJf "$tarball" -C /usr/local --strip-components=1
+          hash -r
+          node --version
+          npm --version
 
       - name: Compute package version
         id: version
@@ -66,7 +93,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
-        # Prebuilt sqlite3 binaries target a newer glibc than bookworm's 2.36,
+        # Prebuilt sqlite3 binaries may require a newer glibc than Ubuntu 22.04,
         # so compile native modules against this container instead
         env:
           npm_config_build_from_source: 'true'
@@ -75,6 +102,7 @@ jobs:
           npm ci
 
       - name: Build application
+        # TRUSTED_ORIGINS and ORIGIN are read when the service starts, not during this build.
         run: npm run build
 
       - name: Keep production dependencies only

@@ -30,6 +30,7 @@ case "$1" in
 		if [ -z "$2" ]; then
 			echo "authelia-admin installed. Edit /etc/authelia-admin/config.yml and"
 			echo "/etc/default/authelia-admin, then run: systemctl enable --now authelia-admin"
+			echo "The user authelia-admin must be able to read and write Authelia's database."
 		fi
 		;;
 esac

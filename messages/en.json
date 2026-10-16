@@ -120,6 +120,7 @@
   "common_validation_error": "Validation Error",
   "config_id_required": "Configuration ID is required",
   "config_read_failed": "Failed to read configuration: {error}",
+  "csrf_forbidden": "Cross-site {method} form submissions are forbidden",
   "dashboard_banned_text": "View and manage banned IPs and users",
   "dashboard_banned_title": "Banned",
   "dashboard_notifications_text": "Configure notification settings",

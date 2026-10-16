@@ -16,8 +16,11 @@ RestartSec=5
 StateDirectory=authelia-admin
 NoNewPrivileges=yes
 PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=yes
+# full keeps /usr, /boot and /etc read-only and leaves every other path writable.
+# strict would block Authelia's database, which lives outside /var/lib/authelia-admin
+# (for example /data or /var/lib/authelia). ProtectHome is off so a database under
+# /home stays visible. The service user still needs filesystem permission on that path.
+ProtectSystem=full
 ProtectKernelTunables=yes
 ProtectControlGroups=yes
 RestrictSUIDSGID=yes
