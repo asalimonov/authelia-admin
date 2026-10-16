@@ -108,6 +108,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout repository
+        # Needed by gh release create --generate-notes to read the git history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download package artifacts
         uses: actions/download-artifact@v4
         with:
