@@ -1,0 +1,22 @@
+# Authelia Admin configuration (installed as /etc/authelia-admin/config.yml)
+# Replace the placeholder values before starting the service.
+
+logging_level: WARN
+
+authelia:
+  # Domain where Authelia is reachable
+  domain: auth.example.com
+  # Name of the session cookie used by Authelia
+  cookie_name: authelia_session
+  # Minimum authentication level required (1=password, 2=2FA)
+  min_auth_level: 2
+
+directory:
+  type: lldap-graphql
+  lldap-graphql:
+    endpoint: http://127.0.0.1:17170/api/graphql
+    user: admin
+    password: CHANGE_ME
+    ldap_host: 127.0.0.1
+    ldap_port: 3890
+    ldap_base_dn: dc=example,dc=com

@@ -1,0 +1,17 @@
+Package: authelia-admin
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: @ARCH@
+Installed-Size: @INSTALLED_SIZE@
+Maintainer: @MAINTAINER@
+Depends: adduser, libc6 (>= 2.36), libstdc++6
+Homepage: https://github.com/digennarot/authelia-admin
+Description: Web administration interface for Authelia
+ Authelia Admin is a web control panel for managing an Authelia
+ deployment: TOTP configurations, banned users and IPs, and users and
+ groups in LLDAP.
+ .
+ The package ships its own Node.js runtime, so it does not depend on
+ the system nodejs package. The native sqlite3 module is built together
+ with that runtime.

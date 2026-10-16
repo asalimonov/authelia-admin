@@ -1,0 +1,14 @@
+# Environment for the authelia-admin service, loaded by systemd.
+# Restart the service after changing it: systemctl restart authelia-admin
+
+HOST=127.0.0.1
+PORT=9093
+NODE_ENV=production
+
+# YAML configuration file
+AAD_CONFIG_PATH=/etc/authelia-admin/config.yml
+
+# Optional overrides of config.yml, for example:
+# AAD_AUTHELIA_DOMAIN=auth.example.com
+# AAD_LOGLEVEL=INFO
+# AAD_DB_TYPE=PG

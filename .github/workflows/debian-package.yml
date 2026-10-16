@@ -1,0 +1,113 @@
+name: Build Debian package
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+    paths-ignore:
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-deb:
+    name: Build .deb (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    # Build inside Debian bookworm so native modules link against its glibc
+    # (the .deb requires libc6 >= 2.36)
+    container: node:26-bookworm
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    env:
+      TRUSTED_ORIGINS: ${{ vars.TRUSTED_ORIGINS || 'https://auth.localhost.test' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install native build tools and dpkg
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3 make g++ dpkg-dev
+
+      - name: Compute package version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="0.0.0~git$(date -u +%Y%m%d).$(git rev-parse --short HEAD)"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: |
+          npm config set allow-scripts true
+          npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Keep production dependencies only
+        run: npm prune --omit=dev
+
+      - name: Assemble Debian package
+        run: |
+          bash scripts/build-deb.sh \
+            "${{ steps.version.outputs.version }}" \
+            "${{ matrix.arch }}" \
+            "$(command -v node)" \
+            dist-deb
+
+      - name: Inspect package
+        run: |
+          dpkg-deb --info dist-deb/*.deb
+          dpkg-deb --contents dist-deb/*.deb
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: authelia-admin-deb-${{ matrix.arch }}
+          path: dist-deb/*.deb
+          if-no-files-found: error
+
+  release:
+    name: Attach packages to GitHub release
+    needs: build-deb
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: authelia-admin-deb-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create release if missing and upload packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --verify-tag --generate-notes
+          fi
+          gh release upload "$GITHUB_REF_NAME" dist/*.deb --clobber

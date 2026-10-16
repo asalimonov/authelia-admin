@@ -1,0 +1,26 @@
+[Unit]
+Description=Authelia Admin Control Panel
+Documentation=https://github.com/digennarot/authelia-admin
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=authelia-admin
+Group=authelia-admin
+WorkingDirectory=/usr/lib/authelia-admin
+EnvironmentFile=/etc/default/authelia-admin
+ExecStart=/usr/lib/authelia-admin/bin/node build
+Restart=on-failure
+RestartSec=5
+StateDirectory=authelia-admin
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target
